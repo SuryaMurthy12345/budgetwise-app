@@ -1,0 +1,6 @@
+# React / Node
+Frontend/node_modules
+Frontend/build
+
+# Spring Boot
+budget-tracker/target

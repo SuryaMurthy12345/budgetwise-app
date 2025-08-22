@@ -1,0 +1,23 @@
+/* index.css */
+
+/* 1. Import Google Font FIRST */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* 2. Import Tailwind */
+@import "tailwindcss";
+
+/* 3. Define your theme */
+@theme {
+  --font-amplitude: "Plus Jakarta Sans", sans-serif;
+}
+
+/* 4. Global styles */
+body {
+  font-family: var(--font-amplitude);
+  @apply bg-gradient-to-br from-gray-50 to-gray-100 text-gray-800 antialiased;
+}
+
+/* 5. Smooth hover for all buttons & links */
+button, a {
+  @apply transition-colors duration-200;
+}
