@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/auth")
 public class UserController {
     @Autowired
     private UserService userService;
@@ -26,4 +26,5 @@ public class UserController {
     public ResponseEntity<?> userDetails(){
         return userService.userDetails();
     }
+
 }

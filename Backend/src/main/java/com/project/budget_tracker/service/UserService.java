@@ -48,7 +48,7 @@ public class UserService {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             String token = jwtUtil.generateTokenFromEmail(authentication);
-
+            System.out.println(authentication.getName());
             System.out.println(authentication.getAuthorities());
 
             return ResponseEntity.status(HttpStatus.OK).body(token);

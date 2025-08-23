@@ -6,24 +6,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "users")
+@Table(name="profiles")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class Profile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column(nullable = false)
-    private String name;
+    private Double income;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    private Double savingsGoal;
 
-    @Column(nullable = false)
-    private String password;
+    private Double targetExpense;
 
-    @Column(nullable = false)
-    private String role = "ROLE_USER";
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

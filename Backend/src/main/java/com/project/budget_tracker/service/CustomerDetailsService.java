@@ -18,10 +18,12 @@ public class CustomerDetailsService implements UserDetailsService {
     private UserRepo userRepo;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) {
 
         User user = userRepo.findByEmail(email);
-
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found");
+        }
         SimpleGrantedAuthority Authority = new SimpleGrantedAuthority(user.getRole());
 
         return new org.springframework.security.core.userdetails.User(

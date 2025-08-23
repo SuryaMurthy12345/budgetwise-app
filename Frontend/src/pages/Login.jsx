@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import InputField from "../components/InputField";
-import Button from "../components/Button";
-import { Link, useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
 import axios from "axios";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Button from "../components/Button";
+import InputField from "../components/InputField";
+import Layout from "../components/Layout";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -21,7 +21,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8080/api/login", form, {
+      const response = await axios.post("http://localhost:8080/api/auth/login", form, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -31,9 +31,19 @@ const Login = () => {
 
       // ✅ Save token to localStorage
       localStorage.setItem("token", response.data);
-
-      // ✅ Redirect to /hello
-      navigate("/hello");
+      const token = response.data;
+      // ✅ Redirect to /profile
+      const profileResponse = await axios.get("http://localhost:8080/api/profile/check-profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (profileResponse.data.Profile === true) {
+        navigate("/profile");
+      }
+      else {
+        navigate("/profileForm")
+      }
     } catch (err) {
       console.error("Login error:", err);
       if (err.response && err.response.data) {

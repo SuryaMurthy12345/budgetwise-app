@@ -21,7 +21,7 @@ const Register = () => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8080/api/signup", form, {
+      const response = await axios.post("http://localhost:8080/api/auth/signup", form, {
         headers: {
           "Content-Type": "application/json",
         },
