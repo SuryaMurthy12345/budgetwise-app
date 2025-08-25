@@ -1,6 +1,5 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import Layout from "../components/Layout";
 
 const Profile = () => {
     const [profile, setProfile] = useState(null);
@@ -40,51 +39,76 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <Layout>
-                <div className="text-center text-gray-600 text-xl mt-10">Loading...</div>
-            </Layout>
+            <div className="flex justify-center items-center h-screen bg-gray-100">
+                <p className="text-gray-500 text-xl">Loading...</p>
+            </div>
         );
     }
 
     if (error) {
         return (
-            <Layout>
-                <div className="text-center text-red-500 text-lg mt-10">{error}</div>
-            </Layout>
+            <div className="flex justify-center items-center h-screen bg-gray-100">
+                <p className="text-red-500 text-xl">{error}</p>
+            </div>
         );
     }
 
     return (
-        <Layout>
-            <div className="max-w-lg mx-auto bg-white shadow-md rounded-lg p-6 mt-10 border border-gray-200">
-                {/* Name & Email */}
-                <div className="mb-6 text-center">
-                    <h1 className="text-2xl font-bold text-gray-800">{profile.user.name}</h1>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6">
+            <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-8 border border-gray-200">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        Profile Overview
+                    </h1>
+                    <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                        Edit Profile
+                    </button>
+                </div>
+
+                {/* User Info */}
+                <div className="text-center mb-8">
+                    <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4">
+                        {profile.user.name.charAt(0)}
+                    </div>
+                    <h2 className="text-2xl font-semibold text-gray-800">
+                        {profile.user.name}
+                    </h2>
                     <p className="text-gray-500">{profile.user.email}</p>
                 </div>
 
                 {/* Financial Details */}
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4 text-center">
+                    <h3 className="text-xl font-semibold text-gray-700 mb-4 text-center">
                         Financial Details
-                    </h2>
-                    <div className="space-y-4">
-                        <div className="flex justify-between border-b pb-2">
-                            <span className="text-gray-600">Monthly Income</span>
-                            <span className="font-medium text-gray-800">₹{profile.income}</span>
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg p-4 shadow hover:shadow-lg transition text-center">
+                            <p className="text-gray-600 text-sm">Monthly Income</p>
+                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                                ₹{profile.income}
+                            </p>
                         </div>
-                        <div className="flex justify-between border-b pb-2">
-                            <span className="text-gray-600">Savings Goal</span>
-                            <span className="font-medium text-gray-800">₹{profile.savingsGoal}</span>
+                        <div className="bg-gradient-to-r from-green-100 to-green-50 rounded-lg p-4 shadow hover:shadow-lg transition text-center">
+                            <p className="text-gray-600 text-sm">Savings Goal</p>
+                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                                ₹{profile.savingsGoal}
+                            </p>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">Target Expense</span>
-                            <span className="font-medium text-gray-800">₹{profile.targetExpense}</span>
+                        <div className="bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg p-4 shadow hover:shadow-lg transition text-center">
+                            <p className="text-gray-600 text-sm">Target Expense</p>
+                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                                ₹{profile.targetExpense}
+                            </p>
                         </div>
                     </div>
                 </div>
+
+                <p className="text-center text-gray-500 text-sm mt-8 italic">
+                    Manage your budget like a pro ✨
+                </p>
             </div>
-        </Layout>
+        </div>
     );
 };
 
