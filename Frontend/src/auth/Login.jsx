@@ -11,6 +11,8 @@ const Login = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const url = "https://murthyapi.xyz"
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -21,7 +23,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/login", form, {
+      const response = await axios.post(`${url}/api/auth/login`, form, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -33,16 +35,16 @@ const Login = () => {
       localStorage.setItem("token", response.data);
       const token = response.data;
       // ✅ Redirect to /profile
-      const profileResponse = await axios.get("http://localhost:8080/api/profile/check-profile", {
+      const profileResponse = await axios.get(`${url}/api/profile/check-profile`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       if (profileResponse.data.Profile === true) {
-        navigate("/profile");
+        navigate("/screen/profile");
       }
       else {
-        navigate("/profileForm")
+        navigate("/profileform")
       }
     } catch (err) {
       console.error("Login error:", err);

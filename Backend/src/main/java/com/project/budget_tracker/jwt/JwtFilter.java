@@ -1,5 +1,6 @@
 package com.project.budget_tracker.jwt;
 
+import com.project.budget_tracker.service.TokenBlackList;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,8 @@ public class JwtFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
     @Autowired
     private UserDetailsService userDetailsService;
+    @Autowired
+    private TokenBlackList tokenBlackList;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -29,6 +32,11 @@ public class JwtFilter extends OncePerRequestFilter {
             String jwt = jwtUtil.getJwtFromHeader(request);
 
             if (jwt != null && jwtUtil.validateJwtToken(jwt) && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if(tokenBlackList.isTokenBlackListed(jwt)) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Token has been invalidated. Please log in again.");
+                    return;
+                }
                 String email = jwtUtil.getEmailFromToken(jwt);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);

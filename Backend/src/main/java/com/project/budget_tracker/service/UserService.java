@@ -3,7 +3,6 @@ package com.project.budget_tracker.service;
 import com.project.budget_tracker.jwt.JwtUtil;
 import com.project.budget_tracker.model.User;
 import com.project.budget_tracker.repository.UserRepo;
-import com.project.budget_tracker.response.UserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +23,8 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private TokenBlackList tokenBlackList;
 
     public ResponseEntity<?> signup(User user) {
         User dbuser = userRepo.findByEmail(user.getEmail());
@@ -58,12 +59,14 @@ public class UserService {
 
     }
 
-    public ResponseEntity<?> userDetails() {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userRepo.findByEmail(auth.getName());
-        UserResponse response = new UserResponse(user.getName(), user.getEmail(), user.getRole());
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> signout(String authhHeader) {
+        if(authhHeader!=null && authhHeader.startsWith("Bearer ")){
+//            request.getSession().invalidate();
+            String token = authhHeader.substring(7);
+            tokenBlackList.blacklistToken(token);
+            return ResponseEntity.status(HttpStatus.OK).body("Logged Out Succefully, token added to blacklist");
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No valid token provided");
     }
 }

@@ -11,6 +11,8 @@ const Register = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const url = "https://murthyapi.xyz"
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -21,7 +23,7 @@ const Register = () => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/signup", form, {
+      const response = await axios.post(`${url}/api/auth/signup`, form, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -30,7 +32,7 @@ const Register = () => {
       console.log("Signup successful:", response.data);
 
       // ✅ Redirect to login page
-      navigate("/login");
+      navigate("/auth/login");
     } catch (err) {
       console.error("Signup error:", err);
       if (err.response && err.response.data) {

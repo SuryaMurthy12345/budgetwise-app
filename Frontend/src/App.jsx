@@ -1,10 +1,25 @@
-import { RouterProvider } from 'react-router-dom'
-import Routes from './routes/Routes'
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import Login from "./auth/Login";
+import Register from "./auth/Register";
+import PageNotFound from "./pages/PageNotFound";
+import Screen from "./pages/Screen";
+import ProfileForm from "./pages/profile/ProfileForm";
 
-function App() {
+const App = () => {
   return (
-    <RouterProvider router={Routes}/>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/auth/login" element={<Login />} />
+        <Route path="/auth/register" element={<Register />} />
+        <Route path="/profileform" element={<ProfileForm />} />
+        {/* Everything under /screen handled by Screen.jsx */}
+        <Route path="/screen/*" element={<Screen />} />
+
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;

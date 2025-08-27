@@ -34,7 +34,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/login","/api/auth/signup").permitAll()
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/login","/api/auth/signup","/api/auth/hello").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless session
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

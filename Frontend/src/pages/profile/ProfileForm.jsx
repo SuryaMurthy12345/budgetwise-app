@@ -1,9 +1,10 @@
 import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "../components/Button";
-import InputField from "../components/InputField";
-import Layout from "../components/Layout";
+import Button from "../../components/Button";
+import InputField from "../../components/InputField";
+import Layout from "../../components/Layout";
+
 
 const ProfileForm = () => {
     const [form, setForm] = useState({
@@ -14,6 +15,8 @@ const ProfileForm = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
+
+    const url = "https://murthyapi.xyz"
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -33,7 +36,7 @@ const ProfileForm = () => {
             }
 
             // ✅ API call
-            await axios.post("http://localhost:8080/api/profile/add-profile", form, {
+            await axios.post(`${url}/api/profile/add-profile`, form, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
@@ -41,7 +44,7 @@ const ProfileForm = () => {
             });
 
             console.log("Profile created successfully");
-            navigate("/profile"); // ✅ Redirect after success
+            navigate("/screen/profile"); // ✅ Redirect after success
         } catch (err) {
             console.error("Profile creation error:", err);
 

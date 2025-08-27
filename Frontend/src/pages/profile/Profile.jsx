@@ -6,6 +6,8 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const url = "https://murthyapi.xyz"
+
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -17,7 +19,7 @@ const Profile = () => {
                 }
 
                 const response = await axios.get(
-                    "http://localhost:8080/api/profile/get-profile",
+                    `${url}/api/profile/get-profile`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,

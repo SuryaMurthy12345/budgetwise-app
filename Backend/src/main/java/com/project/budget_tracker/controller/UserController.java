@@ -22,9 +22,16 @@ public class UserController {
         return userService.login(user);
     }
 
-    @GetMapping("/user-details")
-    public ResponseEntity<?> userDetails(){
-        return userService.userDetails();
+
+
+    @GetMapping("/hello")
+    public String hello(){
+        return "hello cloudflared";
+    }
+
+    @PostMapping("/signout")
+    public ResponseEntity<?> signout(@RequestHeader ("Authorization") String authhHeader){
+        return userService.signout(authhHeader);
     }
 
 }
