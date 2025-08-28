@@ -1,26 +1,27 @@
-import React, { useState } from "react";
-import InputField from "../components/InputField";
-import Button from "../components/Button";
-import { Link, useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
 import axios from "axios";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Button from "../components/Button";
+import InputField from "../components/InputField";
+import Layout from "../components/Layout";
 
 const Register = () => {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  const url = "https://murthyapi.xyz"
+  const url = "https://murthyapi.xyz";
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" }); // Clear field-specific error on change
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setErrors({}); // Reset previous errors
 
     try {
       const response = await axios.post(`${url}/api/auth/signup`, form, {
@@ -35,10 +36,12 @@ const Register = () => {
       navigate("/auth/login");
     } catch (err) {
       console.error("Signup error:", err);
-      if (err.response && err.response.data) {
-        setError(err.response.data);
+
+      if (err.response && err.response.status === 400 && typeof err.response.data === "object") {
+        // Validation errors from backend
+        setErrors(err.response.data);
       } else {
-        setError("Something went wrong. Please try again.");
+        setErrors({ general: "Something went wrong. Please try again." });
       }
     } finally {
       setLoading(false);
@@ -52,9 +55,10 @@ const Register = () => {
         Create your account
       </p>
 
-      {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      {errors.general && <p className="text-red-500 text-center mb-4">{errors.general}</p>}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {/* Name Field */}
         <InputField
           label="Enter your Name"
           placeholder="John Doe"
@@ -62,6 +66,9 @@ const Register = () => {
           value={form.name}
           onChange={handleChange}
         />
+        {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+
+        {/* Email Field */}
         <InputField
           label="Enter your Email"
           placeholder="hello@reallygreatsite.com"
@@ -69,6 +76,9 @@ const Register = () => {
           value={form.email}
           onChange={handleChange}
         />
+        {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+
+        {/* Password Field */}
         <InputField
           label="Enter Password"
           type="password"
@@ -77,6 +87,8 @@ const Register = () => {
           value={form.password}
           onChange={handleChange}
         />
+        {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+
         <Button text={loading ? "Registering..." : "Register"} />
       </form>
 

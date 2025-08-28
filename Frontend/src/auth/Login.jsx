@@ -8,19 +8,20 @@ import Layout from "../components/Layout";
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-  const url = "https://murthyapi.xyz"
+  const url = "https://murthyapi.xyz";
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" }); // Clear specific field error
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setErrors({}); // Reset previous errors
 
     try {
       const response = await axios.post(`${url}/api/auth/login`, form, {
@@ -34,24 +35,30 @@ const Login = () => {
       // ✅ Save token to localStorage
       localStorage.setItem("token", response.data);
       const token = response.data;
-      // ✅ Redirect to /profile
+
+      // ✅ Check profile and redirect accordingly
       const profileResponse = await axios.get(`${url}/api/profile/check-profile`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (profileResponse.data.Profile === true) {
         navigate("/screen/profile");
-      }
-      else {
-        navigate("/profileform")
+      } else {
+        navigate("/profileform");
       }
     } catch (err) {
       console.error("Login error:", err);
-      if (err.response && err.response.data) {
-        setError(err.response.data);
+
+      if (err.response && err.response.status === 400 && typeof err.response.data === "object") {
+        // Field-level validation errors
+        setErrors(err.response.data);
+      } else if (err.response && typeof err.response.data === "string") {
+        // General error message from backend
+        setErrors({ general: err.response.data });
       } else {
-        setError("Invalid credentials. Please try again.");
+        setErrors({ general: "Invalid credentials. Please try again." });
       }
     } finally {
       setLoading(false);
@@ -65,9 +72,10 @@ const Login = () => {
         Welcome back! Please log in.
       </p>
 
-      {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      {errors.general && <p className="text-red-500 text-center mb-4">{errors.general}</p>}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {/* Email Field */}
         <InputField
           label="Enter your Email"
           placeholder="hello@reallygreatsite.com"
@@ -75,6 +83,9 @@ const Login = () => {
           value={form.email}
           onChange={handleChange}
         />
+        {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+
+        {/* Password Field */}
         <InputField
           label="Enter Password"
           type="password"
@@ -83,6 +94,8 @@ const Login = () => {
           value={form.password}
           onChange={handleChange}
         />
+        {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+
         <Button text={loading ? "Logging in..." : "Login"} />
       </form>
 

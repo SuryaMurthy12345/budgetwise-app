@@ -1,5 +1,7 @@
 package com.project.budget_tracker.service;
 
+import com.project.budget_tracker.Dto.LoginRequest;
+import com.project.budget_tracker.Dto.SignupRequest;
 import com.project.budget_tracker.jwt.JwtUtil;
 import com.project.budget_tracker.model.User;
 import com.project.budget_tracker.repository.UserRepo;
@@ -26,21 +28,25 @@ public class UserService {
     @Autowired
     private TokenBlackList tokenBlackList;
 
-    public ResponseEntity<?> signup(User user) {
+    public ResponseEntity<?> signup(SignupRequest user) {
         User dbuser = userRepo.findByEmail(user.getEmail());
         if (dbuser != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already exists");
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User newUser = new User();
+        newUser.setName(user.getName());
+        newUser.setEmail(user.getEmail());
+        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        newUser.setRole("ROLE_USER");
 
-        User saveduser = userRepo.save(user);
+        User saveduser = userRepo.save(newUser);
 
         return ResponseEntity.status(HttpStatus.OK).body(saveduser);
 
     }
 
 
-    public ResponseEntity<?> login(User user) {
+    public ResponseEntity<?> login(LoginRequest user) {
 
         try {
             Authentication authentication = authenticationManager.authenticate(
