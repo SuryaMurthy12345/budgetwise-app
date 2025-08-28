@@ -15,31 +15,41 @@ const Register = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" }); // Clear field-specific error on change
+    setErrors({ ...errors, [e.target.name]: "" }); // Clear field-specific error
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrors({}); // Reset previous errors
+    setErrors({}); // Clear previous errors
 
     try {
       const response = await axios.post(`${url}/api/auth/signup`, form, {
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
 
       console.log("Signup successful:", response.data);
 
-      // ✅ Redirect to login page
+      // Redirect to login page
       navigate("/auth/login");
     } catch (err) {
       console.error("Signup error:", err);
 
-      if (err.response && err.response.status === 400 && typeof err.response.data === "object") {
-        // Validation errors from backend
-        setErrors(err.response.data);
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+
+        // Handle field-specific validation errors
+        if ((err.response.status === 400 || err.response.status === 409) && typeof data === "object") {
+          if (data.Error) {
+            setErrors({ general: data.Error }); // Normalize backend "Error" to "general"
+          } else {
+            setErrors(data); // Field-specific errors (e.g., name, email, password)
+          }
+        } else if (typeof data === "string") {
+          setErrors({ general: data });
+        } else {
+          setErrors({ general: "Something went wrong. Please try again." });
+        }
       } else {
         setErrors({ general: "Something went wrong. Please try again." });
       }
@@ -55,6 +65,7 @@ const Register = () => {
         Create your account
       </p>
 
+      {/* General error */}
       {errors.general && <p className="text-red-500 text-center mb-4">{errors.general}</p>}
 
       <form className="space-y-4" onSubmit={handleSubmit}>

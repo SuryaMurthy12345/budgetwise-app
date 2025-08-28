@@ -15,6 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 public class UserService {
     @Autowired
@@ -31,7 +33,7 @@ public class UserService {
     public ResponseEntity<?> signup(SignupRequest user) {
         User dbuser = userRepo.findByEmail(user.getEmail());
         if (dbuser != null) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("Error","User already exists"));
         }
         User newUser = new User();
         newUser.setName(user.getName());

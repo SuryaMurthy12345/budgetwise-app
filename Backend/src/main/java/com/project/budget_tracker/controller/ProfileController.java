@@ -2,6 +2,7 @@ package com.project.budget_tracker.controller;
 
 import com.project.budget_tracker.model.Profile;
 import com.project.budget_tracker.service.ProfileService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ public class ProfileController {
     }
 
     @PostMapping("/add-profile")
-    public ResponseEntity<?> addProfile(@RequestBody  Profile profile){
+    public ResponseEntity<?> addProfile(@Valid @RequestBody  Profile profile){
         return profileService.addProfile(profile);
     }
 

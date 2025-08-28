@@ -1,10 +1,9 @@
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../../components/Button";
 import InputField from "../../components/InputField";
 import Layout from "../../components/Layout";
-
 
 const ProfileForm = () => {
     const [form, setForm] = useState({
@@ -12,30 +11,36 @@ const ProfileForm = () => {
         savingsGoal: "",
         targetExpense: "",
     });
+
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const navigate = useNavigate();
 
-    const url = "https://murthyapi.xyz"
+    const url = "https://murthyapi.xyz";
+
+    // Redirect to login if not logged in
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) navigate("/auth/login");
+    }, [navigate]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+        setErrors({ ...errors, [e.target.name]: "" }); // Clear error for this field
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setError("");
+        setErrors({}); // Clear previous errors
 
         try {
             const token = localStorage.getItem("token");
             if (!token) {
-                setError("You are not logged in.");
-                setLoading(false);
+                navigate("/auth/login");
                 return;
             }
 
-            // ✅ API call
             await axios.post(`${url}/api/profile/add-profile`, form, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -44,21 +49,21 @@ const ProfileForm = () => {
             });
 
             console.log("Profile created successfully");
-            navigate("/screen/profile"); // ✅ Redirect after success
+            navigate("/screen/profile");
         } catch (err) {
-            console.error("Profile creation error:", err);
-
-            // ✅ Show backend validation errors
             if (err.response && err.response.data) {
-                if (typeof err.response.data === "string") {
-                    setError(err.response.data); // e.g. "Profile already exists..."
-                } else if (err.response.data.error) {
-                    setError(err.response.data.error); // e.g. {"error": "..."}
+                const data = err.response.data;
+                if (typeof data === "string") {
+                    setErrors({ general: data });
+                } else if (data.error) {
+                    setErrors({ general: data.error });
+                } else if (typeof data === "object") {
+                    setErrors(data); // field-specific errors
                 } else {
-                    setError("Something went wrong. Please try again.");
+                    setErrors({ general: "Something went wrong. Please try again." });
                 }
             } else {
-                setError("Something went wrong. Please try again.");
+                setErrors({ general: "Something went wrong. Please try again." });
             }
         } finally {
             setLoading(false);
@@ -72,7 +77,9 @@ const ProfileForm = () => {
                 Please enter your financial details
             </p>
 
-            {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+            {errors.general && (
+                <p className="text-red-500 text-center mb-4">{errors.general}</p>
+            )}
 
             <form className="space-y-4 max-w-lg mx-auto" onSubmit={handleSubmit}>
                 <InputField
@@ -83,6 +90,10 @@ const ProfileForm = () => {
                     value={form.income}
                     onChange={handleChange}
                 />
+                {errors.income && (
+                    <p className="text-red-500 text-sm">{errors.income}</p>
+                )}
+
                 <InputField
                     label="Savings Goal"
                     placeholder="Enter your savings goal"
@@ -91,6 +102,10 @@ const ProfileForm = () => {
                     value={form.savingsGoal}
                     onChange={handleChange}
                 />
+                {errors.savingsGoal && (
+                    <p className="text-red-500 text-sm">{errors.savingsGoal}</p>
+                )}
+
                 <InputField
                     label="Target Expense"
                     placeholder="Enter your target expense"
@@ -99,6 +114,10 @@ const ProfileForm = () => {
                     value={form.targetExpense}
                     onChange={handleChange}
                 />
+                {errors.targetExpense && (
+                    <p className="text-red-500 text-sm">{errors.targetExpense}</p>
+                )}
+
                 <Button text={loading ? "Saving..." : "Save Profile"} />
             </form>
         </Layout>
