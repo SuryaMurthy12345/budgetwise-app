@@ -2,6 +2,7 @@ package com.project.budget_tracker.controller;
 
 import com.project.budget_tracker.model.Transaction;
 import com.project.budget_tracker.service.TransactionService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +15,7 @@ public class TransactionController {
     private TransactionService transactionService;
 
     @PostMapping("/add")
-    public ResponseEntity<?> addTransaction(@RequestBody Transaction transaction) {
+    public ResponseEntity<?> addTransaction(@Valid @RequestBody Transaction transaction) {
         return transactionService.addTransaction(transaction);
     }
 
@@ -29,7 +30,7 @@ public class TransactionController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateTransaction(@PathVariable Long id, @RequestBody Transaction transaction) {
+    public ResponseEntity<?> updateTransaction(@PathVariable Long id, @Valid @RequestBody Transaction transaction) {
         return transactionService.updateTransaction(id, transaction);
     }
 }
