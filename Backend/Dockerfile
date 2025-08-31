@@ -28,9 +28,9 @@ COPY --from=build /app/target/backend-app.jar .
 # These will need to be configured on Render for production use
 # They are included here for reference
 ENV SPRING_APPLICATION_NAME=budget-tracker
-ENV SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/infosys
+ENV SPRING_DATASOURCE_URL=jdbc:mysql://switchyard.proxy.rlwy.net:42392/infosys
 ENV SPRING_DATASOURCE_USERNAME=root
-ENV SPRING_DATASOURCE_PASSWORD=123456
+ENV SPRING_DATASOURCE_PASSWORD=bTKUGXQPUTzMfwkRXBTifANyiLxPUNRv
 ENV SPRING_JPA_HIBERNATE_DDL_AUTO=update
 ENV SPRING_JPA_SHOW_SQL=true
 ENV SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQL8Dialect
