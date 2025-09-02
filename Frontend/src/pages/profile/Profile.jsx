@@ -6,7 +6,7 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const url = "https://murthyapi.xyz"
+    const url = "https://budgetwise-app-4h23.onrender.com";
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -18,14 +18,11 @@ const Profile = () => {
                     return;
                 }
 
-                const response = await axios.get(
-                    `${url}/api/profile/get-profile`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+                const response = await axios.get(`${url}/api/profile/get-profile`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
 
                 setProfile(response.data);
             } catch (err) {
@@ -41,65 +38,63 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-screen bg-gray-100">
-                <p className="text-gray-500 text-xl">Loading...</p>
+            <div className="flex justify-center items-center h-screen bg-gray-900 text-gray-400">
+                <p className="text-xl animate-pulse">Loading profile...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="flex justify-center items-center h-screen bg-gray-100">
-                <p className="text-red-500 text-xl">{error}</p>
+            <div className="flex justify-center items-center h-screen bg-gray-900 text-red-500">
+                <p className="text-xl">{error}</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6">
-            <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-8 border border-gray-200">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6 text-gray-100">
+            <div className="max-w-3xl mx-auto bg-gray-800/60 backdrop-blur-lg shadow-2xl rounded-2xl p-8 border border-gray-700">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl font-extrabold text-purple-400">
                         Profile Overview
                     </h1>
-                    <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                    <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
                         Edit Profile
                     </button>
                 </div>
 
                 {/* User Info */}
                 <div className="text-center mb-8">
-                    <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4">
+                    <div className="w-24 h-24 bg-purple-700/30 text-purple-400 rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4">
                         {profile.user.name.charAt(0)}
                     </div>
-                    <h2 className="text-2xl font-semibold text-gray-800">
-                        {profile.user.name}
-                    </h2>
-                    <p className="text-gray-500">{profile.user.email}</p>
+                    <h2 className="text-2xl font-semibold">{profile.user.name}</h2>
+                    <p className="text-gray-400">{profile.user.email}</p>
                 </div>
 
                 {/* Financial Details */}
                 <div>
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4 text-center">
+                    <h3 className="text-xl font-semibold text-center text-gray-300 mb-6">
                         Financial Details
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg p-4 shadow hover:shadow-lg transition text-center">
-                            <p className="text-gray-600 text-sm">Monthly Income</p>
-                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                        <div className="bg-gradient-to-br from-purple-800/40 to-purple-900/30 rounded-lg p-4 shadow hover:scale-105 transition transform text-center">
+                            <p className="text-gray-400 text-sm">Monthly Income</p>
+                            <p className="text-2xl font-bold text-white mt-1">
                                 ₹{profile.income}
                             </p>
                         </div>
-                        <div className="bg-gradient-to-r from-green-100 to-green-50 rounded-lg p-4 shadow hover:shadow-lg transition text-center">
-                            <p className="text-gray-600 text-sm">Savings Goal</p>
-                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                        <div className="bg-gradient-to-br from-green-800/40 to-green-900/30 rounded-lg p-4 shadow hover:scale-105 transition transform text-center">
+                            <p className="text-gray-400 text-sm">Savings Goal</p>
+                            <p className="text-2xl font-bold text-white mt-1">
                                 ₹{profile.savingsGoal}
                             </p>
                         </div>
-                        <div className="bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg p-4 shadow hover:shadow-lg transition text-center">
-                            <p className="text-gray-600 text-sm">Target Expense</p>
-                            <p className="text-2xl font-bold text-gray-800 mt-1">
+                        <div className="bg-gradient-to-br from-blue-800/40 to-blue-900/30 rounded-lg p-4 shadow hover:scale-105 transition transform text-center">
+                            <p className="text-gray-400 text-sm">Target Expense</p>
+                            <p className="text-2xl font-bold text-white mt-1">
                                 ₹{profile.targetExpense}
                             </p>
                         </div>
