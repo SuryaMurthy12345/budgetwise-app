@@ -10,7 +10,13 @@ import Transaction from "./Transactions/Transaction";
 
 const Screen = () => {
     const navigate = useNavigate();
+<<<<<<< HEAD
     const url = "https://budgetwise-app-4h23.onrender.com";
+=======
+
+
+    const url = "https://budgetwise-app-4h23.onrender.com"
+>>>>>>> 4145fbbf057ecdd1347b41b17c6a9a877dd0fe52
 
     useEffect(() => {
         const token = localStorage.getItem("token");

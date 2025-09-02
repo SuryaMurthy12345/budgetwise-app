@@ -2,7 +2,11 @@ import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+<<<<<<< HEAD
 const API_URL = "https://murthyapi.xyz";
+=======
+const API_URL = "https://budgetwise-app-4h23.onrender.com";
+>>>>>>> 4145fbbf057ecdd1347b41b17c6a9a877dd0fe52
 
 const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
   const navigate = useNavigate();
@@ -22,7 +26,11 @@ const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
       const token = localStorage.getItem("token");
       if (!token) return alert("Not logged in");
 
+<<<<<<< HEAD
       // Prepare payload with numeric amount
+=======
+      // Ensure numeric amount
+>>>>>>> 4145fbbf057ecdd1347b41b17c6a9a877dd0fe52
       const payload = {
         ...form,
         amount: Number(form.amount) || 0,
@@ -45,6 +53,7 @@ const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
       if (typeof onSuccess === "function") {
         onSuccess();
       } else {
+<<<<<<< HEAD
         navigate("/transactions");
       }
     } catch (err) {
@@ -66,6 +75,14 @@ const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
 
       // Other errors → simple alert
       alert(errorMessage);
+=======
+        // fallback: navigate back to transactions page if no onSuccess provided
+        navigate("/transactions");
+      }
+    } catch (err) {
+      console.error("Save error:", err.response?.data || err.message);
+      alert(err.response?.data?.message || err.message || "Error saving transaction");
+>>>>>>> 4145fbbf057ecdd1347b41b17c6a9a877dd0fe52
     }
   };
 
