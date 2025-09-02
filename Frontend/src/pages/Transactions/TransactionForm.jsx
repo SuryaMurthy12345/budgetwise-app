@@ -2,7 +2,7 @@ import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const API_URL = "https://murthyapi.xyz";
+const API_URL = "https://budgetwise-app-4h23.onrender.com";
 
 const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
   const navigate = useNavigate();

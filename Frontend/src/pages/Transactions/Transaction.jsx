@@ -3,7 +3,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import TransactionForm from "./TransactionForm";
 
-const API_URL = "https://murthyapi.xyz";
+const API_URL = "https://budgetwise-app-4h23.onrender.com";
 
 const Transaction = () => {
   const [transactions, setTransactions] = useState([]);
