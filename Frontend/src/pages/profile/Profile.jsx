@@ -6,7 +6,9 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+
     const url = "https://budgetwise-app-4h23.onrender.com"
+
 
     useEffect(() => {
         const fetchProfile = async () => {

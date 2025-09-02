@@ -11,6 +11,7 @@ import Transaction from "./Transactions/Transaction";
 const Screen = () => {
     const navigate = useNavigate();
 
+
     const url = "https://budgetwise-app-4h23.onrender.com"
 
     useEffect(() => {
