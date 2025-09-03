@@ -33,4 +33,14 @@ public class TransactionController {
     public ResponseEntity<?> updateTransaction(@PathVariable Long id, @Valid @RequestBody Transaction transaction) {
         return transactionService.updateTransaction(id, transaction);
     }
+
+    @GetMapping("/monthly")
+    public ResponseEntity<?> getMonthlyTransactions(
+            @RequestParam int year,
+            @RequestParam int month,
+            @RequestParam Long userId // For now, pass userId from frontend. Later we will fetch from token
+    ) {
+        return transactionService.getMonthlyTransactions(userId, year, month);
+    }
+
 }

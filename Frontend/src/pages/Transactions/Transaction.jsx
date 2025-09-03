@@ -7,6 +7,12 @@ const API_URL = "https://budgetwise-app-4h23.onrender.com";
 
 const Transaction = () => {
   const [transactions, setTransactions] = useState([]);
+  const [summary, setSummary] = useState({
+    monthlyIncome: 0,
+    totalCredits: 0,
+    totalExpenses: 0,
+    remainingBalance: 0,
+  });
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,14 +20,21 @@ const Transaction = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
 
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
   useEffect(() => {
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     setSelectedMonth(currentMonth);
-    fetchData();
+    fetchData(currentMonth);
   }, []);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (selectedMonth) {
+      fetchData(selectedMonth);
+    }
+  }, [selectedMonth]);
+
+  const fetchData = async (month) => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -34,13 +47,33 @@ const Transaction = () => {
       const profileRes = await axios.get(`${API_URL}/api/profile/get-profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setProfile(profileRes.data);
+      const userProfile = profileRes.data;
+      setProfile(userProfile);
 
-      const transactionRes = await axios.get(`${API_URL}/api/transaction/list`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const txns = transactionRes.data?.data || transactionRes.data || [];
+      if (!userProfile?.user?.id) {
+        throw new Error("User ID not found in profile.");
+      }
+
+      const [year, monthVal] = month.split("-");
+
+      const transactionRes = await axios.get(
+        `${API_URL}/api/transaction/monthly?year=${year}&month=${monthVal}&userId=${userProfile.user.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = transactionRes.data;
+      const txns = data?.transactions || [];
+
       setTransactions(Array.isArray(txns) ? txns : []);
+      setSummary({
+        monthlyIncome: data.monthlyIncome,
+        totalCredits: data.totalCredits,
+        totalExpenses: data.totalExpenses,
+        remainingBalance: data.remainingBalance,
+      });
+
     } catch (err) {
       console.error("Transaction Fetch Error:", err.response?.data || err.message);
       setError("Failed to load transactions.");
@@ -50,35 +83,27 @@ const Transaction = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!id) return alert("No id to delete");
+    if (!id) return alert("No ID to delete");
     if (!window.confirm("Delete this transaction?")) return;
     try {
       const token = localStorage.getItem("token");
-      if (!token) return alert("Not logged in");
+      if (!token) throw new Error("Not logged in");
       const res = await axios.delete(`${API_URL}/api/transaction/delete/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert(res.data?.message || "Transaction deleted!");
-      fetchData();
+      fetchData(selectedMonth);
     } catch (err) {
       console.error("Delete error:", err.response?.data || err.message);
       alert(err.response?.data?.message || err.message || "Error deleting transaction");
     }
   };
 
-  const filteredByMonth = transactions.filter((txn) => {
-    if (!selectedMonth) return true;
-    if (!txn?.date) return false;
-    const txnDate = new Date(txn.date);
-    const txnMonth = `${txnDate.getFullYear()}-${String(txnDate.getMonth() + 1).padStart(2, "0")}`;
-    return txnMonth === selectedMonth;
-  });
-
-  const groupedByDate = filteredByMonth.reduce((acc, txn) => {
+  const groupedByDate = transactions.reduce((acc, txn) => {
     const dateKey = new Date(txn.date).toLocaleDateString("en-GB");
     if (!acc[dateKey]) acc[dateKey] = { income: [], expense: [] };
     const type = (txn.account || "").toLowerCase();
-    if (type === "income") acc[dateKey].income.push(txn);
+    if (type === "income" || type === "borrow") acc[dateKey].income.push(txn);
     else if (type === "expense") acc[dateKey].expense.push(txn);
     return acc;
   }, {});
@@ -88,17 +113,6 @@ const Transaction = () => {
     const [dayB, monthB, yearB] = b.split("/").map(Number);
     return new Date(yearB, monthB - 1, dayB) - new Date(yearA, monthA - 1, dayA);
   });
-
-  const totalIncome = filteredByMonth.reduce((sum, txn) => {
-    return (txn.account || "").toLowerCase() === "income" ? sum + Number(txn.amount) : sum;
-  }, 0);
-
-  const totalExpenses = filteredByMonth.reduce((sum, txn) => {
-    return (txn.account || "").toLowerCase() === "expense" ? sum + Number(txn.amount) : sum;
-  }, 0);
-
-  const monthlySalary = Number(profile?.income) || 0;
-  const remaining = monthlySalary + totalIncome - totalExpenses;
 
   if (loading) return <p className="text-center mt-10 text-lg">Loading...</p>;
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
@@ -117,6 +131,7 @@ const Transaction = () => {
           className="bg-gray-800 text-gray-100 p-3 rounded-lg shadow-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
+          max={currentMonth} // Restricts the selection to the current month or earlier
         />
         <button
           onClick={() => setSelectedMonth("")}
@@ -129,10 +144,10 @@ const Transaction = () => {
       {/* Summary Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
         {[
-          { title: "Monthly Income", value: monthlySalary, color: "from-blue-500/20 to-blue-700/20" },
-          { title: "Total Credits", value: totalIncome, color: "from-green-500/20 to-green-700/20" },
-          { title: "Total Expenses", value: totalExpenses, color: "from-red-500/20 to-red-700/20" },
-          { title: "Remaining", value: remaining, color: "from-yellow-500/20 to-yellow-700/20" },
+          { title: "Monthly Income", value: summary.monthlyIncome, color: "from-blue-500/20 to-blue-700/20" },
+          { title: "Total Credits", value: summary.totalCredits, color: "from-green-500/20 to-green-700/20" },
+          { title: "Total Expenses", value: summary.totalExpenses, color: "from-red-500/20 to-red-700/20" },
+          { title: "Remaining", value: summary.remainingBalance, color: "from-yellow-500/20 to-yellow-700/20" },
         ].map((card, index) => (
           <div
             key={index}
@@ -175,7 +190,7 @@ const Transaction = () => {
                         <button onClick={() => { setEditingTxn(txn); setShowForm(true); }} className="text-indigo-400 hover:text-indigo-500">
                           <PencilIcon className="h-5 w-5" />
                         </button>
-                        <button onClick={() => handleDelete(txn._id || txn.id)} className="text-red-400 hover:text-red-500">
+                        <button onClick={() => handleDelete(txn.id)} className="text-red-400 hover:text-red-500">
                           <TrashIcon className="h-5 w-5" />
                         </button>
                       </div>
@@ -200,7 +215,7 @@ const Transaction = () => {
                         <button onClick={() => { setEditingTxn(txn); setShowForm(true); }} className="text-indigo-400 hover:text-indigo-500">
                           <PencilIcon className="h-5 w-5" />
                         </button>
-                        <button onClick={() => handleDelete(txn._id || txn.id)} className="text-red-400 hover:text-red-500">
+                        <button onClick={() => handleDelete(txn.id)} className="text-red-400 hover:text-red-500">
                           <TrashIcon className="h-5 w-5" />
                         </button>
                       </div>
@@ -227,7 +242,7 @@ const Transaction = () => {
             <TransactionForm
               txn={editingTxn}
               onClose={() => setShowForm(false)}
-              onSuccess={() => { setShowForm(false); fetchData(); }}
+              onSuccess={() => { setShowForm(false); fetchData(selectedMonth); }}
             />
           </div>
         </div>

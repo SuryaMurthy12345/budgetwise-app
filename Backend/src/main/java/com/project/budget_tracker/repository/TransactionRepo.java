@@ -6,15 +6,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface TransactionRepo extends JpaRepository<Transaction, Long> {
     List<Transaction> findByUser(User user);
 
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.user.id = :userId AND LOWER(t.account) = 'income' AND MONTH(t.date) = :month AND YEAR(t.date) = :year")
-    Double getMonthlyIncomeCredits(@Param("userId") Long userId, @Param("month") int month, @Param("year") int year);
-
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.user.id = :userId AND LOWER(t.account) = 'expense' AND MONTH(t.date) = :month AND YEAR(t.date) = :year")
-    Double getMonthlyExpenses(@Param("userId") Long userId, @Param("month") int month, @Param("year") int year);
+    @Query("SELECT t FROM Transaction t WHERE t.user.id = :userId AND t.date BETWEEN :startDate AND :endDate")
+    List<Transaction> findByUserAndDateRange(@Param("userId") Long userId,
+                                             @Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
 
 }
