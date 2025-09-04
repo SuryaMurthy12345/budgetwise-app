@@ -3,7 +3,7 @@ import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import TransactionForm from "./TransactionForm";
 
-const API_URL = "http://localhost:8080";
+const API_URL = "https://budgetwise-app-4h23.onrender.com";
 
 const Transaction = () => {
   const [transactions, setTransactions] = useState([]);
