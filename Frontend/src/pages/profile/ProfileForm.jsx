@@ -17,7 +17,7 @@ const ProfileForm = () => {
     const navigate = useNavigate();
 
 
-    const url = "https://budgetwise-app-4h23.onrender.com";
+    const url = "https://murthyapi.xyz";
 
 
     // Redirect to login if not logged in

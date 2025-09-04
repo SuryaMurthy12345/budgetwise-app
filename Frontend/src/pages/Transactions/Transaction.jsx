@@ -1,9 +1,9 @@
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline"; // Install Heroicons
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TransactionForm from "./TransactionForm";
 
-const API_URL = "https://budgetwise-app-4h23.onrender.com";
+const API_URL = "http://localhost:8080";
 
 const Transaction = () => {
   const [transactions, setTransactions] = useState([]);
@@ -19,6 +19,7 @@ const Transaction = () => {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingTxn, setEditingTxn] = useState(null);
+  const monthInputRef = useRef(null);
 
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -73,6 +74,7 @@ const Transaction = () => {
         totalExpenses: data.totalExpenses,
         remainingBalance: data.remainingBalance,
       });
+      setError(""); // Clear error on successful fetch
 
     } catch (err) {
       console.error("Transaction Fetch Error:", err.response?.data || err.message);
@@ -125,17 +127,27 @@ const Transaction = () => {
       </h1>
 
       {/* Filter */}
-      <div className="mb-10 text-center">
-        <input
-          type="month"
-          className="bg-gray-800 text-gray-100 p-3 rounded-lg shadow-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          max={currentMonth} // Restricts the selection to the current month or earlier
-        />
+      <div className="mb-10 text-center flex justify-center items-center gap-4">
+        <div
+          onClick={() => monthInputRef.current.showPicker()}
+          className="relative inline-flex items-center justify-between p-3 rounded-lg shadow-lg border border-gray-700 bg-gray-800 text-gray-100 cursor-pointer hover:bg-gray-700 transition"
+        >
+          <span className="text-lg font-medium pr-4">{selectedMonth}</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-indigo-400">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Z" />
+          </svg>
+          <input
+            type="month"
+            ref={monthInputRef}
+            className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            max={currentMonth}
+          />
+        </div>
         <button
-          onClick={() => setSelectedMonth("")}
-          className="ml-4 px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition shadow-md"
+          onClick={() => setSelectedMonth(currentMonth)}
+          className="px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition shadow-md"
         >
           Reset
         </button>
@@ -171,6 +183,7 @@ const Transaction = () => {
 
       {/* Transactions with Scrollbar */}
       <div className="space-y-8 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+        {sortedDates.length === 0 && <p className="text-center text-gray-500">No transactions found.</p>}
         {sortedDates.map((date) => (
           <div key={date} className="backdrop-blur-lg bg-gray-800/50 p-6 rounded-xl shadow-xl">
             <h3 className="text-xl font-semibold mb-6 border-b border-gray-700 pb-2">{date}</h3>
@@ -228,7 +241,6 @@ const Transaction = () => {
             </div>
           </div>
         ))}
-        {sortedDates.length === 0 && <p className="text-center text-gray-500">No transactions found.</p>}
       </div>
 
       {/* Modal */}
@@ -243,6 +255,7 @@ const Transaction = () => {
               txn={editingTxn}
               onClose={() => setShowForm(false)}
               onSuccess={() => { setShowForm(false); fetchData(selectedMonth); }}
+              selectedMonth={selectedMonth}
             />
           </div>
         </div>

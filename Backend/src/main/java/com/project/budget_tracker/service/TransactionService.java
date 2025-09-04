@@ -1,8 +1,10 @@
 package com.project.budget_tracker.service;
 
+import com.project.budget_tracker.model.MonthlyStats;
 import com.project.budget_tracker.model.Profile;
 import com.project.budget_tracker.model.Transaction;
 import com.project.budget_tracker.model.User;
+import com.project.budget_tracker.repository.MonthlyStatsRepo;
 import com.project.budget_tracker.repository.ProfileRepo;
 import com.project.budget_tracker.repository.TransactionRepo;
 import com.project.budget_tracker.repository.UserRepo;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -31,52 +34,51 @@ public class TransactionService {
     @Autowired
     private ProfileRepo profileRepo;
 
+    @Autowired
+    private MonthlyStatsRepo monthlyStatsRepo;
+
+
     /**
-     * Reusable private method to get the monthly summary (income, expenses, and remaining balance).
-     *
-     * @param user The user for whom to calculate the summary.
-     * @param year The year of the summary.
-     * @param month The month of the summary.
-     * @return A map containing total credits, total expenses, monthly income, and remaining balance.
+     * Helper method to find or create the monthly stats entry.
      */
-    private Map<String, Double> getMonthlySummary(User user, int year, int month) {
-        YearMonth yearMonth = YearMonth.of(year, month);
-        LocalDate startDate = yearMonth.atDay(1);
-        LocalDate endDate = yearMonth.atEndOfMonth();
+    private MonthlyStats getOrCreateMonthlyStats(User user, int year, int month) {
+        return monthlyStatsRepo.findByUserAndYearAndMonth(user, year, month)
+                .orElseGet(() -> {
+                    Profile profile = profileRepo.findByUser(user);
+                    Double monthlyIncome = (profile != null ? profile.getIncome() : 0.0);
+                    MonthlyStats newStats = new MonthlyStats();
+                    newStats.setUser(user);
+                    newStats.setMonth(month);
+                    newStats.setYear(year);
+                    newStats.setTotalCredits(0.0);
+                    newStats.setTotalExpenses(0.0);
+                    newStats.setRemainingBalance(monthlyIncome);
+                    return monthlyStatsRepo.save(newStats);
+                });
+    }
 
-        List<Transaction> transactions = transactionRepo.findByUserAndDateRange(user.getId(), startDate, endDate);
+    /**
+     * Helper method to update the monthly stats table incrementally.
+     */
+    private void updateMonthlyStats(User user, int year, int month, String accountType, Double amount) {
+        MonthlyStats stats = getOrCreateMonthlyStats(user, year, month);
 
-        double totalCredits = transactions.stream()
-                .filter(t -> "INCOME".equalsIgnoreCase(t.getAccount()) || "BORROW".equalsIgnoreCase(t.getAccount()))
-                .mapToDouble(Transaction::getAmount)
-                .sum();
+        if ("expense".equalsIgnoreCase(accountType)) {
+            stats.setTotalExpenses(stats.getTotalExpenses() + amount);
+            stats.setRemainingBalance(stats.getRemainingBalance() - amount);
+        } else {
+            stats.setTotalCredits(stats.getTotalCredits() + amount);
+            stats.setRemainingBalance(stats.getRemainingBalance() + amount);
+        }
 
-        double totalExpenses = transactions.stream()
-                .filter(t -> "EXPENSE".equalsIgnoreCase(t.getAccount()))
-                .mapToDouble(Transaction::getAmount)
-                .sum();
-
-        Profile profile = profileRepo.findByUser(user);
-        Double monthlyIncome = (profile != null ? profile.getIncome() : 0.0);
-
-        double remainingBalance = monthlyIncome + totalCredits - totalExpenses;
-
-        Map<String, Double> summary = new HashMap<>();
-        summary.put("monthlyIncome", monthlyIncome);
-        summary.put("monthlyCredits", totalCredits);
-        summary.put("monthlyExpenses", totalExpenses);
-        summary.put("remainingBalance", remainingBalance);
-
-        return summary;
+        monthlyStatsRepo.save(stats);
     }
 
     /**
      * Adds a new transaction for the authenticated user.
      * Validates if an expense can be afforded before saving.
-     *
-     * @param transaction The transaction to be added.
-     * @return A ResponseEntity with the saved transaction or an error message.
      */
+    @Transactional
     public ResponseEntity<?> addTransaction(Transaction transaction) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
@@ -86,25 +88,23 @@ public class TransactionService {
         int month = transactionDate.getMonthValue();
         int year = transactionDate.getYear();
 
-        // Get the monthly summary and remaining balance before adding the new transaction
-        Map<String, Double> monthlySummary = getMonthlySummary(user, year, month);
-        Double remainingBalance = monthlySummary.get("remainingBalance");
+        MonthlyStats currentStats = getOrCreateMonthlyStats(user, year, month);
 
-        // Check if the new expense exceeds the remaining balance
-        if ("expense".equalsIgnoreCase(transaction.getAccount()) && transaction.getAmount() > remainingBalance) {
+        if ("expense".equalsIgnoreCase(transaction.getAccount()) && transaction.getAmount() > currentStats.getRemainingBalance()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Insufficient balance to add this expense. Remaining: " + remainingBalance);
+                    .body("Insufficient balance to add this expense. Remaining: " + currentStats.getRemainingBalance());
         }
 
         transaction.setUser(user);
         Transaction saved = transactionRepo.save(transaction);
+
+        updateMonthlyStats(user, year, month, saved.getAccount(), saved.getAmount());
+
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     /**
      * Fetches all transactions for the authenticated user.
-     *
-     * @return A ResponseEntity with a list of transactions.
      */
     public ResponseEntity<?> getTransactions() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -117,23 +117,41 @@ public class TransactionService {
 
     /**
      * Deletes a transaction by its ID.
-     *
-     * @param id The ID of the transaction to delete.
-     * @return A ResponseEntity with a success message.
      */
+    @Transactional
     public ResponseEntity<?> deleteTransaction(Long id) {
+        Transaction transaction = transactionRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Transaction not found"));
+
         transactionRepo.deleteById(id);
+
+        LocalDate transactionDate = transaction.getDate();
+        int month = transactionDate.getMonthValue();
+        int year = transactionDate.getYear();
+
+        // Reverse the transaction's effect on monthly stats
+        String accountType = transaction.getAccount();
+        Double amount = transaction.getAmount();
+
+        MonthlyStats stats = getOrCreateMonthlyStats(transaction.getUser(), year, month);
+
+        if ("expense".equalsIgnoreCase(accountType)) {
+            stats.setTotalExpenses(stats.getTotalExpenses() - amount);
+            stats.setRemainingBalance(stats.getRemainingBalance() + amount);
+        } else {
+            stats.setTotalCredits(stats.getTotalCredits() - amount);
+            stats.setRemainingBalance(stats.getRemainingBalance() - amount);
+        }
+
+        monthlyStatsRepo.save(stats);
+
         return ResponseEntity.ok("Transaction deleted successfully");
     }
 
     /**
-     * Updates an existing transaction. Validates if an updated expense can be afforded.
-     * The validation logic accounts for the old transaction's amount.
-     *
-     * @param id The ID of the transaction to update.
-     * @param updatedTransaction The new transaction details.
-     * @return A ResponseEntity with the updated transaction or an error message.
+     * Updates an existing transaction.
      */
+    @Transactional
     public ResponseEntity<?> updateTransaction(Long id, Transaction updatedTransaction) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
@@ -142,24 +160,42 @@ public class TransactionService {
         Transaction transaction = transactionRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
-        LocalDate transactionDate = transaction.getDate();
-        int month = transactionDate.getMonthValue();
-        int year = transactionDate.getYear();
-
-        // Get the monthly summary
-        Map<String, Double> monthlySummary = getMonthlySummary(user, year, month);
-        Double remainingBalance = monthlySummary.get("remainingBalance");
+        LocalDate oldDate = transaction.getDate();
+        int oldMonth = oldDate.getMonthValue();
+        int oldYear = oldDate.getYear();
+        String oldAccountType = transaction.getAccount();
         Double oldAmount = transaction.getAmount();
 
-        // Adjust remaining balance by subtracting the old amount if it was an expense
-        if ("expense".equalsIgnoreCase(transaction.getAccount())) {
+        LocalDate newDate = updatedTransaction.getDate();
+        int newMonth = newDate.getMonthValue();
+        int newYear = newDate.getYear();
+
+        // Check balance against the new transaction amount
+        MonthlyStats currentStats = getOrCreateMonthlyStats(user, newYear, newMonth);
+        Double remainingBalance = currentStats.getRemainingBalance();
+
+        if (oldMonth == newMonth && oldYear == newYear && "expense".equalsIgnoreCase(oldAccountType)) {
             remainingBalance += oldAmount;
         }
 
-        // Check if the new expense exceeds the adjusted remaining balance
         if ("expense".equalsIgnoreCase(updatedTransaction.getAccount()) && updatedTransaction.getAmount() > remainingBalance) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Insufficient balance to update this expense. Remaining: " + (remainingBalance));
+        }
+
+        // Apply reverse update for old transaction in its original month
+        if (oldMonth == newMonth && oldYear == newYear) {
+            if ("expense".equalsIgnoreCase(oldAccountType)) {
+                currentStats.setTotalExpenses(currentStats.getTotalExpenses() - oldAmount);
+                currentStats.setRemainingBalance(currentStats.getRemainingBalance() + oldAmount);
+            } else {
+                currentStats.setTotalCredits(currentStats.getTotalCredits() - oldAmount);
+                currentStats.setRemainingBalance(currentStats.getRemainingBalance() - oldAmount);
+            }
+            monthlyStatsRepo.save(currentStats);
+        } else {
+            // If month has changed, reverse the old one and update the new one
+            updateMonthlyStats(user, oldYear, oldMonth, oldAccountType, -oldAmount);
         }
 
         // Update the transaction details
@@ -170,34 +206,43 @@ public class TransactionService {
         transaction.setDate(updatedTransaction.getDate());
 
         Transaction saved = transactionRepo.save(transaction);
+
+        // Apply update for the new transaction in its new month
+        updateMonthlyStats(user, newYear, newMonth, saved.getAccount(), saved.getAmount());
+
         return ResponseEntity.ok(saved);
     }
 
     /**
-     * Provides a summary of transactions for a specific month, including totals.
-     *
-     * @param userId The ID of the user.
-     * @param year The year of the summary.
-     * @param month The month of the summary.
-     * @return A ResponseEntity with a map containing the transactions and financial summary.
+     * Provides a summary of transactions for a specific month, now with an instant lookup.
      */
     public ResponseEntity<?> getMonthlyTransactions(Long userId, int year, int month) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Fetch transactions for the list
         YearMonth yearMonth = YearMonth.of(year, month);
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
         List<Transaction> transactions = transactionRepo.findByUserAndDateRange(userId, startDate, endDate);
 
-        Map<String, Double> summary = getMonthlySummary(user, year, month);
-
+        // Fetch pre-calculated summary for instant totals
+        Profile profile = profileRepo.findByUser(user);
+        MonthlyStats stats = monthlyStatsRepo.findByUserAndYearAndMonth(user, year, month)
+                .orElse(null);
         Map<String, Object> response = new HashMap<>();
+        if(transactions.isEmpty()){
+            response.put("remainingBalance", profile.getIncome());
+        }
+        else{
+        response.put("remainingBalance", (stats != null) ? stats.getRemainingBalance() : 0.0);
+        }
         response.put("transactions", transactions);
-        response.put("totalCredits", summary.get("monthlyCredits"));
-        response.put("totalExpenses", summary.get("monthlyExpenses"));
-        response.put("remainingBalance", summary.get("remainingBalance"));
-        response.put("monthlyIncome", summary.get("monthlyIncome"));
+        response.put("totalCredits", (stats != null) ? stats.getTotalCredits() : 0.0);
+        response.put("totalExpenses", (stats != null) ? stats.getTotalExpenses() : 0.0);
+
+        Double monthlyIncome = (profile != null ? profile.getIncome() : 0.0);
+        response.put("monthlyIncome", monthlyIncome);
 
         return ResponseEntity.ok(response);
     }

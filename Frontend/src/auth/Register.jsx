@@ -12,7 +12,7 @@ const Register = () => {
   const navigate = useNavigate();
 
 
-  const url = "https://budgetwise-app-4h23.onrender.com";
+  const url = "https://murthyapi.xyz";
 
 
   const handleChange = (e) => {

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useState } from "react";
 
-const API_URL = "https://budgetwise-app-4h23.onrender.com";
+const API_URL = "http://localhost:8080";
 
 const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
   const isEdit = !!txn;
