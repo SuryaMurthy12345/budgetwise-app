@@ -3,6 +3,15 @@ import { useState } from "react";
 
 const API_URL = "http://localhost:8080";
 
+const CATEGORY_OPTIONS = [
+  "Food & dining",
+  "Transportation",
+  "Entertainment",
+  "Shopping",
+  "Utilities",
+  "Other",
+];
+
 const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
   const isEdit = !!txn;
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -14,7 +23,7 @@ const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
     description: txn?.description || "",
     amount: txn?.amount != null ? String(txn.amount) : "",
     date: txn?.date ? txn.date.split("T")[0] : today, // Default to today's date
-    category: txn?.category || "",
+    category: txn?.category || "Other", // Default to "Other"
     account: txn?.account || "expense",
   });
 
@@ -51,7 +60,6 @@ const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
       if (typeof onSuccess === "function") {
         onSuccess();
       }
-
     } catch (err) {
       const serverError = err.response?.data || err.message;
       setErrorMessage(serverError);
@@ -94,13 +102,19 @@ const TransactionForm = ({ txn = null, onClose = null, onSuccess = null }) => {
           required
           max={today}
         />
-        <input
-          type="text"
-          placeholder="Category"
+        <select
           className="bg-gray-800 text-gray-100 p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={form.category}
           onChange={(e) => setForm({ ...form, category: e.target.value })}
-        />
+          required
+        >
+          <option value="">Select Category</option>
+          {CATEGORY_OPTIONS.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
         <select
           className="bg-gray-800 text-gray-100 p-3 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={form.account}

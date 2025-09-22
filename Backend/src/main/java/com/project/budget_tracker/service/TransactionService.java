@@ -19,6 +19,7 @@ import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class TransactionService {
@@ -51,7 +52,7 @@ public class TransactionService {
                     newStats.setYear(year);
                     newStats.setTotalCredits(0.0);
                     newStats.setTotalExpenses(0.0);
-                    newStats.setStartingBalance(0.0); // Initialize starting balance
+                    newStats.setStartingBalance(0.0);
                     newStats.setRemainingBalance(0.0);
                     return monthlyStatsRepo.save(newStats);
                 });
@@ -70,7 +71,6 @@ public class TransactionService {
             stats.setTotalCredits(stats.getTotalCredits() + amount);
             stats.setRemainingBalance(stats.getRemainingBalance() + amount);
         }
-
         monthlyStatsRepo.save(stats);
     }
 
@@ -231,7 +231,52 @@ public class TransactionService {
     }
 
     /**
-     * Provides a summary of transactions for a specific month.
+     * New method to set category-specific budgets with validation.
+     */
+    @Transactional
+    public ResponseEntity<?> setBudgets(int year, int month, Map<String, Double> budgets) {
+        User user = getAuthenticatedUser();
+        MonthlyStats stats = getOrCreateMonthlyStats(user, year, month);
+
+        // Calculate the total of all new budgets
+        double totalBudget = budgets.values().stream().mapToDouble(Double::doubleValue).sum();
+
+        // Validate against starting balance
+        if (totalBudget > stats.getStartingBalance()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Total budgets cannot exceed the starting balance of the month.");
+        }
+
+        // Update each budget field from the map
+        budgets.forEach((category, amount) -> {
+            switch (category.toLowerCase().replace(" ", "").replace("&", "")) {
+                case "fooddining":
+                    stats.setBudgetFood(amount);
+                    break;
+                case "transportation":
+                    stats.setBudgetTransportation(amount);
+                    break;
+                case "entertainment":
+                    stats.setBudgetEntertainment(amount);
+                    break;
+                case "shopping":
+                    stats.setBudgetShopping(amount);
+                    break;
+                case "utilities":
+                    stats.setBudgetUtilities(amount);
+                    break;
+                default:
+                    // Handle other categories or ignore
+                    break;
+            }
+        });
+
+        monthlyStatsRepo.save(stats);
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Provides a summary of transactions and budgets for a specific month.
      */
     public ResponseEntity<?> getMonthlyTransactions(int year, int month) {
         User user = getAuthenticatedUser();
@@ -250,12 +295,22 @@ public class TransactionService {
             response.put("totalCredits", stats.getTotalCredits());
             response.put("totalExpenses", stats.getTotalExpenses());
             response.put("startingBalance", stats.getStartingBalance());
+            response.put("budgetFood", stats.getBudgetFood());
+            response.put("budgetTransportation", stats.getBudgetTransportation());
+            response.put("budgetEntertainment", stats.getBudgetEntertainment());
+            response.put("budgetShopping", stats.getBudgetShopping());
+            response.put("budgetUtilities", stats.getBudgetUtilities());
         }
         else{
             response.put("remainingBalance", 0.0);
             response.put("totalCredits", 0.0);
             response.put("totalExpenses", 0.0);
             response.put("startingBalance", 0.0);
+            response.put("budgetFood", 0.0);
+            response.put("budgetTransportation", 0.0);
+            response.put("budgetEntertainment", 0.0);
+            response.put("budgetShopping", 0.0);
+            response.put("budgetUtilities", 0.0);
         }
 
         response.put("transactions", transactions);

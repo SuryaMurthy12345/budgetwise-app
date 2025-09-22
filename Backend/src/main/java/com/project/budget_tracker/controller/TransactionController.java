@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/transaction")
 public class TransactionController {
@@ -47,6 +49,11 @@ public class TransactionController {
             @RequestParam int month,
             @RequestParam Double balance) {
         return transactionService.setStartingBalance(year, month, balance);
+    }
+
+    @PostMapping("/set-budgets")
+    public ResponseEntity<?> setBudgets(@RequestParam int year, @RequestParam int month, @RequestBody Map<String, Double> budgets) {
+        return transactionService.setBudgets(year, month, budgets);
     }
 
 }

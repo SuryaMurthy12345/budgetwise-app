@@ -27,4 +27,10 @@ public class MonthlyStats {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    // New fields for budgets
+    private Double budgetFood = 0.0;
+    private Double budgetTransportation = 0.0;
+    private Double budgetEntertainment = 0.0;
+    private Double budgetShopping = 0.0;
+    private Double budgetUtilities = 0.0;
 }
