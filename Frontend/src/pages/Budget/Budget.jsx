@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
+import { FaCar, FaFilm, FaHome, FaShoppingCart, FaUtensils } from "react-icons/fa";
 import BudgetForm from "./BudgetForm";
 
 const API_URL = "http://localhost:8080";
@@ -109,6 +110,23 @@ const Budget = () => {
     return budget - expenses;
   };
 
+  const getIcon = (category) => {
+    switch (category) {
+      case "Food & dining":
+        return <FaUtensils size={24} />;
+      case "Transportation":
+        return <FaCar size={24} />;
+      case "Entertainment":
+        return <FaFilm size={24} />;
+      case "Shopping":
+        return <FaShoppingCart size={24} />;
+      case "Utilities":
+        return <FaHome size={24} />;
+      default:
+        return null;
+    }
+  };
+
   if (loading) return <p className="text-center mt-10 text-lg">Loading budget...</p>;
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
 
@@ -146,6 +164,7 @@ const Budget = () => {
         </button>
       </div>
 
+      {/* Changed to a vertical grid layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {categories.map((category) => {
           const budget = stats?.[CATEGORY_TO_KEY_MAP[category]] || 0;
@@ -155,10 +174,16 @@ const Budget = () => {
           return (
             <div
               key={category}
-              className={`p-6 rounded-xl shadow-lg backdrop-blur-lg bg-gray-800/60 border border-gray-700 hover:scale-105 transition`}
+              className="p-6 rounded-xl shadow-lg backdrop-blur-lg bg-gray-800/60 border border-gray-700 hover:scale-105 transition"
             >
-              <p className="text-sm opacity-80">{category} Budget</p>
-              <h3 className="text-xl font-bold mt-2">₹{budget.toFixed(2)}</h3>
+              <div className="flex items-center gap-4 mb-4 text-purple-400">
+                {getIcon(category)}
+                <p className="text-lg font-semibold">{category}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-80">Budget</p>
+                <h3 className="text-xl font-bold mt-1">₹{budget.toFixed(2)}</h3>
+              </div>
               <div className="mt-4 pt-4 border-t border-gray-700">
                 <p className="text-sm opacity-80">Remaining</p>
                 <p className={`text-2xl font-bold ${isOverbudget ? 'text-red-400' : 'text-green-400'}`}>
