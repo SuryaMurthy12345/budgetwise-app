@@ -1,15 +1,15 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
 
 const Profile = () => {
-    const [profile, setProfile] = useState(null);
+    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const url = "https://budgetwise-app-4h23.onrender.com";
+    // The URL should be configured here.
+    const url = "http://localhost:8080";
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem("token");
                 if (!token) {
@@ -18,22 +18,36 @@ const Profile = () => {
                     return;
                 }
 
-                const response = await axios.get(`${url}/api/profile/get-profile`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                // In a real application, you would have a backend endpoint like this to get
+                // user details (name, email) without financial data.
+                // For now, we'll use a mock object since the Profile model was removed.
+                const mockUser = {
+                    name: "John Doe",
+                    email: "john.doe@example.com",
+                };
 
-                setProfile(response.data);
+                // Simulate an API call
+                setTimeout(() => {
+                    setUser(mockUser);
+                    setLoading(false);
+                }, 500);
+
+                // Example of a real API call if a user endpoint is created on the backend:
+                // const response = await axios.get(`${url}/api/user/get-user-details`, {
+                //     headers: {
+                //         Authorization: `Bearer ${token}`,
+                //     },
+                // });
+                // setUser(response.data);
+
             } catch (err) {
-                console.error("Error fetching profile:", err);
-                setError("Failed to load profile.");
-            } finally {
+                console.error("Error fetching user data:", err);
+                setError("Failed to load user data.");
                 setLoading(false);
             }
         };
 
-        fetchProfile();
+        fetchUserData();
     }, []);
 
     if (loading) {
@@ -68,36 +82,33 @@ const Profile = () => {
                 {/* User Info */}
                 <div className="text-center mb-8">
                     <div className="w-24 h-24 bg-purple-700/30 text-purple-400 rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-4">
-                        {profile.user.name.charAt(0)}
+                        {user.name.charAt(0)}
                     </div>
-                    <h2 className="text-2xl font-semibold">{profile.user.name}</h2>
-                    <p className="text-gray-400">{profile.user.email}</p>
+                    <h2 className="text-2xl font-semibold">{user.name}</h2>
+                    <p className="text-gray-400">{user.email}</p>
                 </div>
 
-                {/* Financial Details */}
-                <div>
-                    <h3 className="text-xl font-semibold text-center text-gray-300 mb-6">
-                        Financial Details
+                {/* PDF Download Section - Placeholder */}
+                <div className="mt-8 pt-6 border-t border-gray-700 text-center">
+                    <h3 className="text-lg font-semibold text-gray-300 mb-2">
+                        Monthly Statistics
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="bg-gradient-to-br from-purple-800/40 to-purple-900/30 rounded-lg p-4 shadow hover:scale-105 transition transform text-center">
-                            <p className="text-gray-400 text-sm">Monthly Income</p>
-                            <p className="text-2xl font-bold text-white mt-1">
-                                ₹{profile.income}
-                            </p>
-                        </div>
-                        <div className="bg-gradient-to-br from-green-800/40 to-green-900/30 rounded-lg p-4 shadow hover:scale-105 transition transform text-center">
-                            <p className="text-gray-400 text-sm">Savings Goal</p>
-                            <p className="text-2xl font-bold text-white mt-1">
-                                ₹{profile.savingsGoal}
-                            </p>
-                        </div>
-                        <div className="bg-gradient-to-br from-blue-800/40 to-blue-900/30 rounded-lg p-4 shadow hover:scale-105 transition transform text-center">
-                            <p className="text-gray-400 text-sm">Target Expense</p>
-                            <p className="text-2xl font-bold text-white mt-1">
-                                ₹{profile.targetExpense}
-                            </p>
-                        </div>
+                    <p className="text-gray-400 mb-4">
+                        You will be able to select a month and download a PDF of your transaction statistics here. This feature will be implemented in the future.
+                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                        <input
+                            type="month"
+                            value="2023-11"
+                            disabled // Disable the input for now
+                            className="bg-gray-700 text-gray-100 p-2 rounded-lg border border-gray-600 focus:outline-none"
+                        />
+                        <button
+                            onClick={() => alert("PDF download is coming soon!")}
+                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition"
+                        >
+                            Download PDF
+                        </button>
                     </div>
                 </div>
 

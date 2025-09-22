@@ -11,10 +11,8 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
-
-  const url = "https://budgetwise-app-4h23.onrender.com";
-
-
+  // The URL should be configured here.
+  const url = "http://localhost:8080";
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -35,22 +33,12 @@ const Login = () => {
 
       console.log("Login successful:", response.data);
 
-      // ✅ Save token to localStorage
+      // Save the token to localStorage
       localStorage.setItem("token", response.data);
-      const token = response.data;
 
-      // ✅ Check profile and redirect accordingly
-      const profileResponse = await axios.get(`${url}/api/profile/check-profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // Redirect directly to the transactions dashboard, since the profile check is no longer needed.
+      navigate("/screen/transaction");
 
-      if (profileResponse.data.Profile === true) {
-        navigate("/screen/transaction");
-      } else {
-        navigate("/profileform");
-      }
     } catch (err) {
       console.error("Login error:", err);
 

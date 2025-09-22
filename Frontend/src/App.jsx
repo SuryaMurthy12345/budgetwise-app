@@ -3,7 +3,6 @@ import Login from "./auth/Login";
 import Register from "./auth/Register";
 import PageNotFound from "./pages/PageNotFound";
 import Screen from "./pages/Screen";
-import ProfileForm from "./pages/profile/ProfileForm";
 
 const App = () => {
   return (
@@ -12,7 +11,7 @@ const App = () => {
         <Route path="/" element={<Login />} />
         <Route path="/auth/login" element={<Login />} />
         <Route path="/auth/register" element={<Register />} />
-        <Route path="/profileform" element={<ProfileForm />} />
+
         {/* Everything under /screen handled by Screen.jsx */}
         <Route path="/screen/*" element={<Screen />} />
 

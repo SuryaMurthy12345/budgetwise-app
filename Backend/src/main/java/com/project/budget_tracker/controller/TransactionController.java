@@ -37,10 +37,16 @@ public class TransactionController {
     @GetMapping("/monthly")
     public ResponseEntity<?> getMonthlyTransactions(
             @RequestParam int year,
+            @RequestParam int month) {
+        return transactionService.getMonthlyTransactions(year, month);
+    }
+
+    @PostMapping("/set-starting-balance")
+    public ResponseEntity<?> setStartingBalance(
+            @RequestParam int year,
             @RequestParam int month,
-            @RequestParam Long userId // For now, pass userId from frontend. Later we will fetch from token
-    ) {
-        return transactionService.getMonthlyTransactions(userId, year, month);
+            @RequestParam Double balance) {
+        return transactionService.setStartingBalance(year, month, balance);
     }
 
 }

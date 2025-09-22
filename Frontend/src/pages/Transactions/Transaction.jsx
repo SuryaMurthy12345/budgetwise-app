@@ -1,19 +1,18 @@
-import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline"; // Install Heroicons
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import TransactionForm from "./TransactionForm";
 
-const API_URL = "https://budgetwise-app-4h23.onrender.com";
+const API_URL = "http://localhost:8080";
 
 const Transaction = () => {
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({
-    monthlyIncome: 0,
+    startingBalance: 0,
     totalCredits: 0,
     totalExpenses: 0,
     remainingBalance: 0,
   });
-  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
@@ -26,7 +25,6 @@ const Transaction = () => {
 
   useEffect(() => {
     setSelectedMonth(currentMonth);
-    fetchData(currentMonth);
   }, []);
 
   useEffect(() => {
@@ -45,20 +43,10 @@ const Transaction = () => {
         return;
       }
 
-      const profileRes = await axios.get(`${API_URL}/api/profile/get-profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const userProfile = profileRes.data;
-      setProfile(userProfile);
-
-      if (!userProfile?.user?.id) {
-        throw new Error("User ID not found in profile.");
-      }
-
       const [year, monthVal] = month.split("-");
 
       const transactionRes = await axios.get(
-        `${API_URL}/api/transaction/monthly?year=${year}&month=${monthVal}&userId=${userProfile.user.id}`,
+        `${API_URL}/api/transaction/monthly?year=${year}&month=${monthVal}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -69,12 +57,12 @@ const Transaction = () => {
 
       setTransactions(Array.isArray(txns) ? txns : []);
       setSummary({
-        monthlyIncome: data.monthlyIncome,
+        startingBalance: data.startingBalance,
         totalCredits: data.totalCredits,
         totalExpenses: data.totalExpenses,
         remainingBalance: data.remainingBalance,
       });
-      setError(""); // Clear error on successful fetch
+      setError("");
 
     } catch (err) {
       console.error("Transaction Fetch Error:", err.response?.data || err.message);
@@ -98,6 +86,33 @@ const Transaction = () => {
     } catch (err) {
       console.error("Delete error:", err.response?.data || err.message);
       alert(err.response?.data?.message || err.message || "Error deleting transaction");
+    }
+  };
+
+  const handleSetStartingBalance = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You are not logged in.");
+      return;
+    }
+    const [year, month] = selectedMonth.split("-");
+    try {
+      await axios.post(
+        `${API_URL}/api/transaction/set-starting-balance`,
+        null, // Send empty body for POST with params
+        {
+          params: {
+            year: Number(year),
+            month: Number(month),
+            balance: Number(summary.startingBalance)
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      fetchData(selectedMonth); // Refresh the data to show updated stats
+    } catch (err) {
+      console.error("Failed to set starting balance:", err);
+      alert("Failed to set starting balance.");
     }
   };
 
@@ -126,8 +141,8 @@ const Transaction = () => {
         Transaction Dashboard
       </h1>
 
-      {/* Filter */}
-      <div className="mb-10 text-center flex justify-center items-center gap-4">
+      {/* Filter and Starting Balance Input */}
+      <div className="mb-10 text-center flex flex-col md:flex-row justify-center items-center gap-4">
         <div
           onClick={() => monthInputRef.current.showPicker()}
           className="relative inline-flex items-center justify-between p-3 rounded-lg shadow-lg border border-gray-700 bg-gray-800 text-gray-100 cursor-pointer hover:bg-gray-700 transition"
@@ -145,6 +160,23 @@ const Transaction = () => {
             max={currentMonth}
           />
         </div>
+
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          <label className="text-sm font-medium">Starting Balance:</label>
+          <input
+            type="number"
+            value={summary.startingBalance}
+            onChange={(e) => setSummary({ ...summary, startingBalance: e.target.value })}
+            className="px-4 py-2 rounded-lg bg-gray-800 text-gray-100 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-32"
+          />
+          <button
+            onClick={handleSetStartingBalance}
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition shadow-md"
+          >
+            Set Balance
+          </button>
+        </div>
+
         <button
           onClick={() => setSelectedMonth(currentMonth)}
           className="px-4 py-3 rounded-lg bg-gray-700 hover:bg-gray-600 transition shadow-md"
@@ -156,7 +188,7 @@ const Transaction = () => {
       {/* Summary Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
         {[
-          { title: "Monthly Income", value: summary.monthlyIncome, color: "from-blue-500/20 to-blue-700/20" },
+          { title: "Starting Balance", value: summary.startingBalance, color: "from-blue-500/20 to-blue-700/20" },
           { title: "Total Credits", value: summary.totalCredits, color: "from-green-500/20 to-green-700/20" },
           { title: "Total Expenses", value: summary.totalExpenses, color: "from-red-500/20 to-red-700/20" },
           { title: "Remaining", value: summary.remainingBalance, color: "from-yellow-500/20 to-yellow-700/20" },
@@ -194,7 +226,7 @@ const Transaction = () => {
                 {groupedByDate[date].expense.length > 0 ? (
                   groupedByDate[date].expense.map((txn) => (
                     <div
-                      key={txn._id || txn.id}
+                      key={txn.id}
                       className="flex justify-between items-center bg-red-500/10 p-4 mb-3 rounded-lg hover:bg-red-500/20 transition"
                     >
                       <span>{txn.description || txn.category}</span>
@@ -219,7 +251,7 @@ const Transaction = () => {
                 {groupedByDate[date].income.length > 0 ? (
                   groupedByDate[date].income.map((txn) => (
                     <div
-                      key={txn._id || txn.id}
+                      key={txn.id}
                       className="flex justify-between items-center bg-green-500/10 p-4 mb-3 rounded-lg hover:bg-green-500/20 transition"
                     >
                       <span>{txn.description || txn.category}</span>

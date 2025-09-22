@@ -16,6 +16,8 @@ public class MonthlyStats {
 
     private int year;
 
+    private Double startingBalance;
+
     private Double totalCredits;
     private Double totalExpenses;
     private Double remainingBalance;
