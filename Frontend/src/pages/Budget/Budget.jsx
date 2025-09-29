@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { FaCar, FaFilm, FaHome, FaShoppingCart, FaUtensils } from "react-icons/fa";
 import BudgetForm from "./BudgetForm";
+import SavingGoals from "./SavingGoals";
 
 const API_URL = "http://localhost:8080";
 
@@ -164,7 +165,6 @@ const Budget = () => {
         </button>
       </div>
 
-      {/* Changed to a vertical grid layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {categories.map((category) => {
           const budget = stats?.[CATEGORY_TO_KEY_MAP[category]] || 0;
@@ -194,6 +194,9 @@ const Budget = () => {
           );
         })}
       </div>
+
+      {/* New section for Savings Goals */}
+      <SavingGoals />
 
       {showBudgetForm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">

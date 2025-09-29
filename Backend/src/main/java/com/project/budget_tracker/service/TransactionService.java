@@ -19,7 +19,6 @@ import java.time.YearMonth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class TransactionService {
@@ -315,5 +314,15 @@ public class TransactionService {
 
         response.put("transactions", transactions);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Gets a summary of monthly expenses for a trend chart.
+     */
+    public ResponseEntity<?> getSpendingTrends() {
+        User user = getAuthenticatedUser();
+        LocalDate startOfYear = LocalDate.now().withDayOfYear(1);
+        List<Map<String, Object>> monthlyExpenses = transactionRepo.findMonthlyExpensesByUser(user.getId(), startOfYear);
+        return ResponseEntity.ok(monthlyExpenses);
     }
 }

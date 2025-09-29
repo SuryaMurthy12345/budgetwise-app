@@ -56,4 +56,8 @@ public class TransactionController {
         return transactionService.setBudgets(year, month, budgets);
     }
 
+    @GetMapping("/spending-trends")
+    public ResponseEntity<?> getSpendingTrends() {
+        return transactionService.getSpendingTrends();
+    }
 }

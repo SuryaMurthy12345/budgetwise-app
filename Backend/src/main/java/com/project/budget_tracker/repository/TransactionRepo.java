@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface TransactionRepo extends JpaRepository<Transaction, Long> {
     List<Transaction> findByUser(User user);
@@ -17,4 +18,10 @@ public interface TransactionRepo extends JpaRepository<Transaction, Long> {
                                              @Param("startDate") LocalDate startDate,
                                              @Param("endDate") LocalDate endDate);
 
+    @Query("SELECT YEAR(t.date) as year, MONTH(t.date) as month, SUM(t.amount) as totalExpense " +
+            "FROM Transaction t " +
+            "WHERE t.user.id = :userId AND t.account = 'expense' AND t.date >= :startDate " +
+            "GROUP BY year, month " +
+            "ORDER BY year, month")
+    List<Map<String, Object>> findMonthlyExpensesByUser(@Param("userId") Long userId, @Param("startDate") LocalDate startDate);
 }
