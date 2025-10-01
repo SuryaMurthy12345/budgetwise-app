@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Bot } from "lucide-react"; // Import Bot for the button icon
 import { useEffect, useRef, useState } from "react";
 import AiChatbot from "./AiChatbot";
 import CategorySpendingChart from "./CategorySpendingChart";
@@ -14,6 +15,7 @@ const Dashboard = () => {
     const [error, setError] = useState("");
     const [selectedMonth, setSelectedMonth] = useState("");
     const monthInputRef = useRef(null);
+    const [isChatUnlocked, setIsChatUnlocked] = useState(false); // NEW STATE: Chat Gate
 
     const today = new Date();
     const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -137,10 +139,31 @@ const Dashboard = () => {
 
             {/* 5. AI Chatbot Integration */}
             <div className="mt-8 h-[450px]">
-                <AiChatbot
-                    monthlyData={monthlyData}
-                    selectedMonth={selectedMonth}
-                />
+                {/* NEW CODE: Chat Unlock Button / Placeholder */}
+                {!isChatUnlocked && (
+                    <div className="flex flex-col items-center justify-center h-full bg-gray-800 rounded-xl shadow-2xl border border-gray-700 p-8 text-center">
+                        <Bot size={48} className="text-purple-400 mb-4" />
+                        <h2 className="text-xl font-semibold mb-6">Activate AI Assistant</h2>
+                        <p className="text-gray-400 mb-6">
+                            Click below to start chatting with BudgetWise AI for financial suggestions and budget allocation.
+                        </p>
+                        <button
+                            onClick={() => setIsChatUnlocked(true)}
+                            className="px-6 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 font-semibold shadow-md transition transform hover:scale-105"
+                        >
+                            Start Chat
+                        </button>
+                    </div>
+                )}
+
+                {/* EXISTING CODE: Chatbot Display, only shown when unlocked */}
+                {isChatUnlocked && (
+                    <AiChatbot
+                        monthlyData={monthlyData}
+                        selectedMonth={selectedMonth}
+                        isChatUnlocked={isChatUnlocked} // Pass state down to enable input
+                    />
+                )}
             </div>
         </div>
     );

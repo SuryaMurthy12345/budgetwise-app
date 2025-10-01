@@ -1,21 +1,47 @@
-import axios from "axios"; // Import axios
+import axios from "axios";
+import { Mail } from "lucide-react"; // Import Mail icon
 import { useEffect, useState } from "react";
 
 const Profile = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    // 1. Add state for selected report month and downloading status
+
     const today = new Date();
     const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
-    const [reportMonth, setReportMonth] = useState(currentMonth); // Default to current month
-    const [isDownloading, setIsDownloading] = useState(false); // New state for download button
+    const [reportMonth, setReportMonth] = useState(currentMonth);
+    const [isDownloading, setIsDownloading] = useState(false);
 
-    // The URL should be configured here.
     const url = "http://localhost:8080";
 
+    // --- NEW HELPER FUNCTION: Avatar Logic ---
+    const getInitials = (name) => {
+        if (!name) return "U";
+        // Takes the first letter of the first and last name
+        const parts = name.split(' ');
+        if (parts.length > 1) {
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+        return name[0].toUpperCase();
+    };
+
+    const getHashColor = (name) => {
+        // Simple hash function to generate a deterministic color from the name
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        let color = '#';
+        for (let i = 0; i < 3; i++) {
+            const value = (hash >> (i * 8)) & 0xFF;
+            // Use mid-range values for better visibility on dark background
+            color += ('00' + (100 + (value % 156)).toString(16)).substr(-2);
+        }
+        return color;
+    };
+    // ------------------------------------------
+
     useEffect(() => {
-        // ... (rest of fetchUserData remains the same)
         const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem("token");
@@ -25,9 +51,11 @@ const Profile = () => {
                     return;
                 }
 
+                // In a real app, this API call would fetch the logged-in user's details from the backend.
+                // Assuming you would fetch a user object with 'name' and 'email'.
                 const mockUser = {
-                    name: "John Doe",
-                    email: "john.doe@example.com",
+                    name: "Satya User",
+                    email: "satya.user@budgetwise.com",
                 };
 
                 setTimeout(() => {
@@ -45,7 +73,6 @@ const Profile = () => {
         fetchUserData();
     }, []);
 
-    // 2. Add PDF Download handler
     const handleDownloadPdf = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -56,7 +83,7 @@ const Profile = () => {
         setIsDownloading(true);
         try {
             const [year, month] = reportMonth.split("-").map(Number);
-            
+
             const response = await axios.get(
                 `${url}/api/transaction/report/pdf?year=${year}&month=${month}`,
                 {
@@ -85,16 +112,42 @@ const Profile = () => {
             setIsDownloading(false);
         }
     };
-    
-    // ... (rest of the component structure remains the same until the PDF section)
+
+    if (loading) return <p className="text-center mt-10 text-lg">Loading profile...</p>;
+    if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
+
+    const userName = user?.name || "BudgetWise User";
+    const userEmail = user?.email || "user@example.com";
+    const initials = getInitials(userName);
+    const avatarColor = getHashColor(userName);
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6 text-gray-100">
             <div className="max-w-3xl mx-auto bg-gray-800/60 backdrop-blur-lg shadow-2xl rounded-2xl p-8 border border-gray-700">
-                {/* Header and User Info sections remain unchanged */}
-                
-                {/* PDF Download Section - Implemented */}
-                <div className="mt-8 pt-6 border-t border-gray-700 text-center">
+
+                {/* --- NEW PROFILE SECTION (Avatar & Details) --- */}
+                <div className="flex flex-col items-center pb-8 border-b border-gray-700">
+
+                    {/* Avatar */}
+                    <div
+                        className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold mb-4 shadow-xl ring-4 ring-gray-600"
+                        style={{ backgroundColor: avatarColor, color: '#FFFFFF' }}
+                    >
+                        {initials}
+                    </div>
+
+                    {/* User Details */}
+                    <h2 className="text-3xl font-bold mb-2">{userName}</h2>
+                    <div className="flex items-center text-gray-400 space-x-2">
+                        <Mail size={16} />
+                        <p className="text-lg">{userEmail}</p>
+                    </div>
+                </div>
+                {/* --- END NEW PROFILE SECTION --- */}
+
+                {/* PDF Download Section */}
+                <div className="mt-8 pt-6 text-center">
                     <h3 className="text-lg font-semibold text-gray-300 mb-2">
                         Monthly Financial Report (PDF)
                     </h3>

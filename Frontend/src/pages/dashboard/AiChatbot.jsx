@@ -1,11 +1,11 @@
 import axios from "axios";
-import { Bot, Send, Trash2, Zap } from "lucide-react"; // Zap is for the 'Apply Budget' button
+import { Bot, Send, Trash2 } from "lucide-react"; // REMOVED Zap from imports
 import { useEffect, useRef, useState } from "react";
 
 const API_URL = "http://localhost:8080";
 const LOCAL_STORAGE_KEY = "aiChatHistory";
 
-// Helper function to call the set-budgets API
+// Helper function to call the set-budgets API - REMAINS FOR INTERNAL LOGIC
 const applySuggestedBudget = async (month, year, budgetMap, token) => {
     try {
         // API expects month and year as query params, and budget map in body
@@ -21,7 +21,7 @@ const applySuggestedBudget = async (month, year, budgetMap, token) => {
     }
 };
 
-const AiChatbot = ({ monthlyData, selectedMonth }) => {
+const AiChatbot = ({ monthlyData, selectedMonth, isChatUnlocked }) => { // ACCEPT isChatUnlocked PROP
     // 1. IMPLEMENT WELCOME MESSAGE LOGIC
     const [messages, setMessages] = useState(() => {
         const savedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -62,37 +62,15 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
         }
     };
 
-    // Handles applying the budget and updating UI
-    const handleApplyBudget = async (budgetMap, messageIndex) => {
-        const token = localStorage.getItem("token");
-        if (!token) return alert("Not logged in.");
-
-        const [year, month] = selectedMonth.split("-").map(Number);
-        
-        // 1. Call API to apply budget
-        const result = await applySuggestedBudget(month, year, budgetMap, token);
-
-        // 2. Update the message to reflect success/failure and remove the button
-        setMessages(prevMessages => {
-            const newMessages = [...prevMessages];
-            const originalMessage = newMessages[messageIndex];
-            
-            if (result.success) {
-                // Remove the suggestedBudget field
-                delete originalMessage.suggestedBudget;
-                originalMessage.text = "✅ Suggested budget successfully applied to your account! Refresh your budget page to see changes.";
-            } else {
-                originalMessage.text = `❌ Failed to apply budget: ${result.error}. (Original Suggestion: \n${originalMessage.text})`;
-                originalMessage.isError = true;
-                // Keep the suggestedBudget in case the user wants to retry/see the map
-            }
-            return newMessages;
-        });
-    };
+    // handleApplyBudget logic is removed as requested
+    /*
+    const handleApplyBudget = async (budgetMap, messageIndex) => { ... }
+    */
 
     const handleSend = async (e) => {
         e.preventDefault();
-        if (!input.trim() || loading) return;
+        // Use isChatUnlocked here to prevent sending if logic is somehow bypassed
+        if (!input.trim() || loading || !isChatUnlocked) return; 
 
         const userMessage = { sender: 'user', text: input };
         setMessages((prev) => [...prev, userMessage]);
@@ -105,7 +83,7 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
             const token = localStorage.getItem("token");
             if (!token) throw new Error("Not logged in.");
 
-            // CONSTRUCT THE CONTEXT PAYLOAD
+            // CONSTRUCT THE CONTEXT PAYLOAD (same logic as before)
             const contextPayload = {
                 selectedMonth: selectedMonth,
                 startingBalance: monthlyData.startingBalance || 0,
@@ -118,6 +96,27 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
                 budgetShopping: monthlyData.budgetShopping || 0,
                 budgetUtilities: monthlyData.budgetUtilities || 0,
             };
+
+            // --- Calculate actual spending per category for AI context ---
+            const actualCategorySpending = (monthlyData.transactions || [])
+                .filter(txn => txn.account === 'expense')
+                .reduce((acc, txn) => {
+                    let key;
+                    switch(txn.category) {
+                        case 'Food & dining': key = 'actualSpendingFood'; break;
+                        case 'Transportation': key = 'actualSpendingTransportation'; break;
+                        case 'Entertainment': key = 'actualSpendingEntertainment'; break;
+                        case 'Shopping': key = 'actualSpendingShopping'; break;
+                        case 'Utilities': key = 'actualSpendingUtilities'; break;
+                        default: return acc;
+                    }
+                    acc[key] = (acc[key] || 0) + txn.amount;
+                    return acc;
+                }, {});
+
+            Object.assign(contextPayload, actualCategorySpending);
+            // -------------------------------------------------------------------
+
 
             const response = await axios.post(`${API_URL}/api/ai/chat`,
                 {
@@ -133,7 +132,6 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
             // Attempt to parse AI response as JSON for budget suggestion
             try {
                 const parsedJson = JSON.parse(aiAdvice);
-                // Check if the parsed object looks like a budget map
                 if (Object.keys(parsedJson).some(key => key.startsWith('budget'))) {
                     suggestedBudget = parsedJson;
                     // Format the text for display in the chat bubble
@@ -143,14 +141,13 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
                                     .join("\n");
                 }
             } catch (e) {
-                // Not a JSON response, treat it as plain text advice.
                 console.log("AI response is not a budget JSON. Treating as text advice.");
             }
 
             const aiMessage = { 
                 sender: 'ai', 
                 text: aiAdvice, 
-                suggestedBudget: suggestedBudget // Attach the budget object if found
+                suggestedBudget: suggestedBudget // Keep for potential future use or display logic if needed
             };
 
             setMessages((prev) => [...prev, aiMessage]);
@@ -201,16 +198,8 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
                                 }`}>
                                 <div className="whitespace-pre-wrap">{msg.text}</div> 
                                 
-                                {/* Apply Budget Button */}
-                                {msg.suggestedBudget && (
-                                    <button
-                                        onClick={() => handleApplyBudget(msg.suggestedBudget, index)}
-                                        className="mt-3 w-full flex items-center justify-center space-x-2 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-white font-semibold transition"
-                                    >
-                                        <Zap size={16} />
-                                        <span>Apply Budget</span>
-                                    </button>
-                                )}
+                                {/* REMOVED: Apply Budget Button logic is gone */}
+                                
                             </div>
                         </div>
                     ))
@@ -238,12 +227,12 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Ask your financial question..."
                         className="flex-1 px-4 py-2 rounded-full bg-gray-700 border border-gray-600 text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                        disabled={loading}
+                        disabled={loading || !isChatUnlocked} // DISABLED BY GATE
                     />
                     <button
                         type="submit"
                         className="p-3 rounded-full bg-purple-600 hover:bg-purple-500 transition disabled:opacity-50"
-                        disabled={loading || input.trim().length === 0}
+                        disabled={loading || input.trim().length === 0 || !isChatUnlocked} // DISABLED BY GATE
                     >
                         <Send size={20} className="text-white" />
                     </button>

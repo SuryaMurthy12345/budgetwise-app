@@ -56,12 +56,11 @@ const Screen = () => {
             {/* Bottom Navigation */}
             <nav className="h-16 border-t border-gray-700 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 
                 flex justify-around items-center shadow-md backdrop-blur-md">
-                
+
                 <NavLink
                     to="/screen/dashboard"
                     className={({ isActive }) =>
-                        `flex flex-col items-center text-xs transition-all duration-300 ${
-                            isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
+                        `flex flex-col items-center text-xs transition-all duration-300 ${isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
                         }`
                     }
                 >
@@ -72,8 +71,7 @@ const Screen = () => {
                 <NavLink
                     to="/screen/transaction"
                     className={({ isActive }) =>
-                        `flex flex-col items-center text-xs transition-all duration-300 ${
-                            isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
+                        `flex flex-col items-center text-xs transition-all duration-300 ${isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
                         }`
                     }
                 >
@@ -84,8 +82,7 @@ const Screen = () => {
                 <NavLink
                     to="/screen/budget"
                     className={({ isActive }) =>
-                        `flex flex-col items-center text-xs transition-all duration-300 ${
-                            isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
+                        `flex flex-col items-center text-xs transition-all duration-300 ${isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
                         }`
                     }
                 >
@@ -96,8 +93,7 @@ const Screen = () => {
                 <NavLink
                     to="/screen/profile"
                     className={({ isActive }) =>
-                        `flex flex-col items-center text-xs transition-all duration-300 ${
-                            isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
+                        `flex flex-col items-center text-xs transition-all duration-300 ${isActive ? "text-purple-400 scale-110" : "text-gray-400 hover:text-purple-300"
                         }`
                     }
                 >
