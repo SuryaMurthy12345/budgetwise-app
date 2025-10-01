@@ -4,10 +4,14 @@ import com.project.budget_tracker.model.Transaction;
 import com.project.budget_tracker.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/api/transaction")
@@ -59,5 +63,27 @@ public class TransactionController {
     @GetMapping("/spending-trends")
     public ResponseEntity<?> getSpendingTrends() {
         return transactionService.getSpendingTrends();
+    }
+
+    @GetMapping("/report/pdf")
+    public ResponseEntity<byte[]> downloadMonthlyReport(
+            @RequestParam int year,
+            @RequestParam int month) {
+        try {
+            byte[] pdfBytes = transactionService.generateMonthlyReportPdf(year, month);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            String filename = String.format("BudgetWise_Report_%d-%02d.pdf", year, month);
+            headers.setContentDispositionFormData(filename, filename);
+            headers.setContentLength(pdfBytes.length);
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            // Log the error for debugging on the server side
+            System.err.println("Error generating PDF for user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

@@ -1,15 +1,42 @@
 import axios from "axios";
-import { Bot, Send, Trash2 } from "lucide-react"; // Import Trash2 icon
+import { Bot, Send, Trash2, Zap } from "lucide-react"; // Zap is for the 'Apply Budget' button
 import { useEffect, useRef, useState } from "react";
 
 const API_URL = "http://localhost:8080";
 const LOCAL_STORAGE_KEY = "aiChatHistory";
 
+// Helper function to call the set-budgets API
+const applySuggestedBudget = async (month, year, budgetMap, token) => {
+    try {
+        // API expects month and year as query params, and budget map in body
+        await axios.post(
+            `${API_URL}/api/transaction/set-budgets?year=${year}&month=${month}`,
+            budgetMap,
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        return { success: true };
+    } catch (err) {
+        console.error("Failed to apply budgets:", err.response?.data || err.message);
+        return { success: false, error: err.response?.data?.error || "Failed to apply budgets." };
+    }
+};
+
 const AiChatbot = ({ monthlyData, selectedMonth }) => {
-    // Initialize state by trying to load history from localStorage
+    // 1. IMPLEMENT WELCOME MESSAGE LOGIC
     const [messages, setMessages] = useState(() => {
         const savedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return savedHistory ? JSON.parse(savedHistory) : [];
+        const initialMessages = savedHistory ? JSON.parse(savedHistory) : [];
+        
+        // Add a default welcome message only if the chat history is empty
+        if (initialMessages.length === 0) {
+            initialMessages.push({
+                sender: 'ai', 
+                text: "Hello! Good morning, I'm BudgetWise AI. I can analyze your current finances and suggest budget allocations based on your starting balance and saving goals. How can I help you today?",
+                isWelcome: true
+            });
+        }
+
+        return initialMessages;
     });
 
     const [input, setInput] = useState("");
@@ -27,12 +54,40 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // NEW FUNCTION: Clears the messages and localStorage
+    // Clears the messages and localStorage
     const handleClearChat = () => {
         if (window.confirm("Are you sure you want to clear the entire chat history?")) {
             setMessages([]); // Clear local state
             localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear persisted data
         }
+    };
+
+    // Handles applying the budget and updating UI
+    const handleApplyBudget = async (budgetMap, messageIndex) => {
+        const token = localStorage.getItem("token");
+        if (!token) return alert("Not logged in.");
+
+        const [year, month] = selectedMonth.split("-").map(Number);
+        
+        // 1. Call API to apply budget
+        const result = await applySuggestedBudget(month, year, budgetMap, token);
+
+        // 2. Update the message to reflect success/failure and remove the button
+        setMessages(prevMessages => {
+            const newMessages = [...prevMessages];
+            const originalMessage = newMessages[messageIndex];
+            
+            if (result.success) {
+                // Remove the suggestedBudget field
+                delete originalMessage.suggestedBudget;
+                originalMessage.text = "✅ Suggested budget successfully applied to your account! Refresh your budget page to see changes.";
+            } else {
+                originalMessage.text = `❌ Failed to apply budget: ${result.error}. (Original Suggestion: \n${originalMessage.text})`;
+                originalMessage.isError = true;
+                // Keep the suggestedBudget in case the user wants to retry/see the map
+            }
+            return newMessages;
+        });
     };
 
     const handleSend = async (e) => {
@@ -72,8 +127,31 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            const aiAdvice = response.data?.advice || "Sorry, I couldn't get a clear response from the advisor.";
-            const aiMessage = { sender: 'ai', text: aiAdvice };
+            let aiAdvice = response.data?.advice || "Sorry, I couldn't get a clear response from the advisor.";
+            let suggestedBudget = null;
+
+            // Attempt to parse AI response as JSON for budget suggestion
+            try {
+                const parsedJson = JSON.parse(aiAdvice);
+                // Check if the parsed object looks like a budget map
+                if (Object.keys(parsedJson).some(key => key.startsWith('budget'))) {
+                    suggestedBudget = parsedJson;
+                    // Format the text for display in the chat bubble
+                    aiAdvice = "💡 Budget Suggestion:\n" + 
+                                Object.entries(suggestedBudget)
+                                    .map(([key, value]) => `${key.replace('budget', '').replace(/([A-Z])/g, ' $1').trim()}: ₹${Number(value).toFixed(2)}`)
+                                    .join("\n");
+                }
+            } catch (e) {
+                // Not a JSON response, treat it as plain text advice.
+                console.log("AI response is not a budget JSON. Treating as text advice.");
+            }
+
+            const aiMessage = { 
+                sender: 'ai', 
+                text: aiAdvice, 
+                suggestedBudget: suggestedBudget // Attach the budget object if found
+            };
 
             setMessages((prev) => [...prev, aiMessage]);
 
@@ -108,8 +186,9 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
             {/* Message Display Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {messages.length === 0 && !loading ? (
+                    // Fallback in case initial message is somehow missed or cleared
                     <div className="text-center text-gray-400 mt-10">
-                        Ask me a financial question! Try: "What is my current remaining balance?" or "Suggest my budget."
+                        Ask me a financial question! Try: "What is my current remaining balance?" or "Suggest my budget allocation for this month, leaving ₹2000 for savings."
                     </div>
                 ) : (
                     messages.map((msg, index) => (
@@ -120,7 +199,18 @@ const AiChatbot = ({ monthlyData, selectedMonth }) => {
                                         ? 'bg-red-800 text-white border border-red-600'
                                         : 'bg-gray-700 text-gray-100'
                                 }`}>
-                                {msg.text}
+                                <div className="whitespace-pre-wrap">{msg.text}</div> 
+                                
+                                {/* Apply Budget Button */}
+                                {msg.suggestedBudget && (
+                                    <button
+                                        onClick={() => handleApplyBudget(msg.suggestedBudget, index)}
+                                        className="mt-3 w-full flex items-center justify-center space-x-2 px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded-lg text-white font-semibold transition"
+                                    >
+                                        <Zap size={16} />
+                                        <span>Apply Budget</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))

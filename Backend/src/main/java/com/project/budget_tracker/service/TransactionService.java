@@ -20,6 +20,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.BaseColor;
+import java.io.ByteArrayOutputStream;
+import java.util.stream.Stream;
+
 @Service
 public class TransactionService {
 
@@ -325,4 +338,165 @@ public class TransactionService {
         List<Map<String, Object>> monthlyExpenses = transactionRepo.findMonthlyExpensesByUser(user.getId(), startOfYear);
         return ResponseEntity.ok(monthlyExpenses);
     }
+
+    public byte[] generateMonthlyReportPdf(int year, int month) {
+        User user = getAuthenticatedUser();
+        // Fetch all necessary data
+        ResponseEntity<?> responseEntity = getMonthlyTransactions(year, month);
+        if (responseEntity.getStatusCode() != HttpStatus.OK || !(responseEntity.getBody() instanceof Map)) {
+            throw new RuntimeException("Failed to retrieve monthly data for PDF generation.");
+        }
+        Map<String, Object> data = (Map<String, Object>) responseEntity.getBody();
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            // Define Fonts
+            Font titleFont = new Font(Font.FontFamily.HELVETICA, 20, Font.BOLD, new BaseColor(63, 81, 181)); // Indigo-500 equivalent
+            Font headingFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD, new BaseColor(0, 0, 0));
+            Font boldFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD);
+            Font normalFont = new Font(Font.FontFamily.HELVETICA, 12, Font.NORMAL);
+            Font expenseFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, new BaseColor(239, 68, 68)); // Red-500
+            Font incomeFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, new BaseColor(34, 197, 94)); // Green-500
+
+            // 1. Title
+            Paragraph title = new Paragraph("BudgetWise Monthly Financial Report", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph(String.format("For %d/%d (User: %s)", month, year, user.getEmail()), normalFont));
+            document.add(new Paragraph("\n"));
+
+            // 2. Summary Table
+            document.add(new Paragraph("Monthly Summary", headingFont));
+            document.add(new Paragraph("\n"));
+
+            PdfPTable summaryTable = new PdfPTable(4);
+            summaryTable.setWidthPercentage(100);
+            summaryTable.setWidths(new float[]{1, 1, 1, 1});
+            summaryTable.addCell(createSummaryCell("Starting Balance", summaryTable.getDefaultCell(), boldFont));
+            summaryTable.addCell(createSummaryCell("Total Income", summaryTable.getDefaultCell(), boldFont));
+            summaryTable.addCell(createSummaryCell("Total Expenses", summaryTable.getDefaultCell(), boldFont));
+            summaryTable.addCell(createSummaryCell("Remaining Balance", summaryTable.getDefaultCell(), boldFont));
+
+            summaryTable.addCell(String.format("₹%.2f", ((Number) data.getOrDefault("startingBalance", 0.0)).doubleValue()));
+            summaryTable.addCell(String.format("₹%.2f", ((Number) data.getOrDefault("totalCredits", 0.0)).doubleValue()));
+            summaryTable.addCell(String.format("₹%.2f", ((Number) data.getOrDefault("totalExpenses", 0.0)).doubleValue()));
+            summaryTable.addCell(String.format("₹%.2f", ((Number) data.getOrDefault("remainingBalance", 0.0)).doubleValue()));
+            document.add(summaryTable);
+
+            document.add(new Paragraph("\n\n"));
+
+            // 3. Budget Allocation
+            document.add(new Paragraph("Budget Allocation & Usage", headingFont));
+            document.add(new Paragraph("\n"));
+
+            PdfPTable budgetTable = new PdfPTable(4);
+            budgetTable.setWidthPercentage(100);
+            budgetTable.setWidths(new float[]{2, 1, 1, 1});
+            addBudgetTableHeader(budgetTable);
+
+            // Assuming these are the categories used in MonthlyStats.java
+            Map<String, String> budgetKeys = Map.of(
+                    "Food & dining", "budgetFood",
+                    "Transportation", "budgetTransportation",
+                    "Entertainment", "budgetEntertainment",
+                    "Shopping", "budgetShopping",
+                    "Utilities", "budgetUtilities"
+            );
+
+            // Re-calculate actual expenses per category from transactions
+            Map<String, Double> actualExpenses = ((List<Transaction>) data.getOrDefault("transactions", List.of()))
+                    .stream()
+                    .filter(t -> "expense".equalsIgnoreCase(t.getAccount()))
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            Transaction::getCategory,
+                            java.util.stream.Collectors.summingDouble(Transaction::getAmount)
+                    ));
+
+            for (Map.Entry<String, String> entry : budgetKeys.entrySet()) {
+                String category = entry.getKey();
+                String budgetKey = entry.getValue();
+                double budget = ((Number) data.getOrDefault(budgetKey, 0.0)).doubleValue();
+                double actual = actualExpenses.getOrDefault(category, 0.0);
+                double remaining = budget - actual;
+
+                budgetTable.addCell(category);
+                budgetTable.addCell(String.format("₹%.2f", budget));
+                budgetTable.addCell(String.format("₹%.2f", actual));
+                budgetTable.addCell(String.format("₹%.2f", remaining));
+            }
+            document.add(budgetTable);
+
+            document.add(new Paragraph("\n\n"));
+
+            // 4. Detailed Transactions
+            document.add(new Paragraph("Detailed Transactions", headingFont));
+            document.add(new Paragraph("\n"));
+
+            PdfPTable transactionTable = new PdfPTable(5);
+            transactionTable.setWidthPercentage(100);
+            transactionTable.setWidths(new float[]{1.5f, 3f, 1.5f, 2f, 2f});
+            addTransactionTableHeader(transactionTable);
+
+            for (Transaction txn : (List<Transaction>) data.getOrDefault("transactions", List.of())) {
+                transactionTable.addCell(new Phrase(txn.getDate().toString(), normalFont));
+                transactionTable.addCell(new Phrase(txn.getDescription(), normalFont));
+                transactionTable.addCell(new Phrase(txn.getAccount(), normalFont));
+                transactionTable.addCell(new Phrase(txn.getCategory(), normalFont));
+
+                // Color code amount
+                Font amountFont = "expense".equalsIgnoreCase(txn.getAccount()) ? expenseFont : incomeFont;
+                PdfPCell amountCell = new PdfPCell(new Phrase(String.format("₹%.2f", txn.getAmount()), amountFont));
+                amountCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                amountCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                transactionTable.addCell(amountCell);
+            }
+            document.add(transactionTable);
+
+            document.close();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            System.err.println("PDF Generation Error: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error generating PDF report: " + e.getMessage());
+        }
+    }
+
+    // Helper method for Summary Table
+    private PdfPCell createSummaryCell(String text, PdfPCell defaultCell, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setBackgroundColor(new BaseColor(200, 200, 255)); // Light blue/gray background
+        return cell;
+    }
+
+    // Helper method for Budget Table Header
+    private void addBudgetTableHeader(PdfPTable table) {
+        Stream.of("Category", "Budget Amount", "Actual Spent", "Remaining")
+                .forEach(headerTitle -> {
+                    PdfPCell header = new PdfPCell();
+                    header.setBackgroundColor(BaseColor.LIGHT_GRAY);
+                    header.setBorderWidth(1);
+                    header.setPhrase(new Phrase(headerTitle, new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
+                    header.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    table.addCell(header);
+                });
+    }
+
+    // Helper method for Transaction Table Header
+    private void addTransactionTableHeader(PdfPTable table) {
+        Stream.of("Date", "Description", "Type", "Category", "Amount")
+                .forEach(headerTitle -> {
+                    PdfPCell header = new PdfPCell();
+                    header.setBackgroundColor(BaseColor.LIGHT_GRAY);
+                    header.setBorderWidth(1);
+                    header.setPhrase(new Phrase(headerTitle, new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
+                    header.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    table.addCell(header);
+                });
+    }
+
+
 }
