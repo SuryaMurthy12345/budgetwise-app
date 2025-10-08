@@ -34,5 +34,10 @@ public class UserController {
     public ResponseEntity<?> signout(@RequestHeader ("Authorization") String authhHeader){
         return userService.signout(authhHeader);
     }
+    // ... (add this new method inside the UserController class)
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(){
+        return userService.getUserProfile();
+    }
 
 }

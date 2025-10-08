@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Map;
 
@@ -77,4 +78,27 @@ public class UserService {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No valid token provided");
     }
+    // In suryamurthy12345/budgetwise-app/budgetwise-app-4fea87922b2c2e43aff6943676c323d8e4a86c1c/Backend/src/main/java/com/project/budget_tracker/service/UserService.java
+
+    // ... (add this new method inside the UserService class)
+    public ResponseEntity<?> getUserProfile() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "User not authenticated"));
+        }
+        String email = authentication.getName();
+        User user = userRepo.findByEmail(email);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
+        }
+        // Create a map to safely return only the necessary user details
+        Map<String, String> userProfile = Map.of(
+                "name", user.getName(),
+                "email", user.getEmail()
+        );
+        return ResponseEntity.ok(userProfile);
+    }
+    // In suryamurthy12345/budgetwise-app/budgetwise-app-4fea87922b2c2e43aff6943676c323d8e4a86c1c/Backend/src/main/java/com/project/budget_tracker/controller/UserController.java
+
+
 }

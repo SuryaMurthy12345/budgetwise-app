@@ -41,37 +41,43 @@ const Profile = () => {
     };
     // ------------------------------------------
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    setError("You are not logged in.");
-                    setLoading(false);
-                    return;
-                }
+   // In suryamurthy12345/budgetwise-app/budgetwise-app-4fea87922b2c2e43aff6943676c323d8e4a86c1c/Frontend/src/pages/profile/Profile.jsx
 
-                // In a real app, this API call would fetch the logged-in user's details from the backend.
-                // Assuming you would fetch a user object with 'name' and 'email'.
-                const mockUser = {
-                    name: "Satya User",
-                    email: "satya.user@budgetwise.com",
-                };
+// ... (inside the Profile component)
 
-                setTimeout(() => {
-                    setUser(mockUser);
-                    setLoading(false);
-                }, 500);
-
-            } catch (err) {
-                console.error("Error fetching user data:", err);
-                setError("Failed to load user data.");
+useEffect(() => {
+    const fetchUserData = async () => {
+        setLoading(true);
+        setError("");
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                setError("You are not logged in.");
                 setLoading(false);
+                return;
             }
-        };
 
-        fetchUserData();
-    }, []);
+            // Replace mock data with a real API call to the new endpoint
+            const response = await axios.get(`${url}/api/auth/profile`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setUser(response.data); // Set the user state with data from the API
+
+        } catch (err) {
+            console.error("Error fetching user data:", err);
+            setError("Failed to load user data.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchUserData();
+}, []); // The empty dependency array ensures this runs only once
+
+// ... (the rest of the component remains the same) []);
 
     const handleDownloadPdf = async () => {
         const token = localStorage.getItem("token");
