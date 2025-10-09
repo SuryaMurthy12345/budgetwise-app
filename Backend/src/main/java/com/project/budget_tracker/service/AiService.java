@@ -18,32 +18,34 @@ public class AiService {
     @Value("${ollama.api.url:http://localhost:11434/api/generate}")
     private String ollamaApiUrl;
 
-    @Value("${ollama.model.name:gemma:2b}") // Default to gemma:2b as per application.properties
+    @Value("${ollama.model.name:mistral:7b}") // Default to gemma:2b as per application.properties
     private String ollamaModelName;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     public ResponseEntity<?> getFinancialAdvice(String userPrompt, Map<String, Object> context) {
 
+        // *** ADDED FOR DEBUGGING ***
+        System.out.println(">>> USING OLLAMA MODEL: " + ollamaModelName + " <<<");
+
         // 1. Format the financial context into a clear text prompt for the LLM
         String contextText = formatFinancialContext(context);
 
         // 2. This System Prompt guides the LLM to act as a financial expert (The core intelligence)
-        // In suryamurthy12345/budgetwise-app/budgetwise-app-main/Backend/src/main/java/com/project/budget_tracker/service/AiService.java:
-
-
-        // AiService.java - inside getFinancialAdvice method, replacing systemInstruction
-        String systemPrompt = "You are a highly skilled and concise financial advisor named BudgetWise AI. Your primary role is to either provide direct text advice or output a single JSON object for budget allocation, with no other explanatory text, markdown, or formatting.\n\n" +
-                "*** STRICT BUDGET ALLOCATION PROTOCOL (ONLY use if the user explicitly asks for a 'budget suggestion', 'allocation', or 'budget plan') ***\n" +
-                "1.  **DETERMINE TARGET AMOUNT:** Identify the total amount to be allocated (e.g., '₹9000', or 'Starting Balance - Savings Goal'). All allocated amounts must be rounded to the nearest whole number (e.g., 1500.0).\n" +
-                "2.  **ALLOCATE PRIMARY CATEGORIES:** Allocate budgets for Food, Transportation, Entertainment, and Shopping based on the user's historical 'Actual Spent' amounts (provided in context) to determine the ratios.\n" +
-                "3.  **CALCULATE REMAINDER:** Sum the allocations for the first four categories (Food + Transportation + Entertainment + Shopping).\n" +
-                "4.  **ASSIGN UTILITIES (THE CATCH-ALL):** Calculate the final category, Utilities, as the precise mathematical remainder: **(Target Amount) - (Sum of the first four categories) = budgetUtilities**.\n" +
-                "5.  **FINAL CHECK:** The sum of all five allocated budgets MUST EXACTLY EQUAL the Budget Target Amount. Utilities MUST absorb any positive or negative remainder.\n" +
-                "6.  **OUTPUT FORMAT:** Must be a single JSON object with keys: `budgetFood`, `budgetTransportation`, `budgetEntertainment`, `budgetShopping`, `budgetUtilities`.\n" +
-                "    *Example:* `{\"budgetFood\": 2500.0, \"budgetTransportation\": 1500.0, \"budgetEntertainment\": 500.0, \"budgetShopping\": 1000.0, \"budgetUtilities\": 3500.0}`\n\n" +
-                "*** GENERAL ADVICE PROTOCOL (For all other questions) ***\n" +
-                "Analyze the user's data provided in the FINANCIAL CONTEXT. Answer all questions directly, concisely, and accurately. Provide calculations where requested (e.g., percentages, differences). Do NOT output JSON.\n\n"+
+        String systemPrompt = "You are BudgetWise AI. Your single and only purpose is to analyze the 'FINANCIAL CONTEXT' provided below. You MUST use this data to answer the user's question. Do not, under any circumstances, refuse to answer by saying you cannot access personal or real-time data. The context provided is the data you must use.\n\n" +
+                "*** BUDGET ALLOCATION TASK (If the user asks for a 'budget', 'allocation', or 'plan') ***\n" +
+                "Provide the budget as a formatted text list. DO NOT use JSON.\n" +
+                "1.  **Identify the Target Amount** from the user's request.\n" +
+                "2.  **Allocate Sensibly:** Distribute the amount across Food, Transportation, Entertainment, Shopping, and Utilities. Base this on the 'Actual Spent' figures if available.\n" +
+                "3.  **Ensure Full Allocation:** The sum of all categories must equal the target amount.\n" +
+                "4.  **OUTPUT FORMAT:** Start your response with '💡 Here is a suggested budget allocation:' and then list the categories.\n" +
+                "    *Example Response:*\n" +
+                "    💡 Here is a suggested budget allocation:\n" +
+                "    - Food: ₹2500\n" +
+                "    - Transportation: ₹1500\n" +
+                "    - Utilities: ₹3500\n\n" +
+                "*** GENERAL ADVICE TASK (For all other questions) ***\n" +
+                "Analyze the user's data from the FINANCIAL CONTEXT to answer the question directly. If asked about 'current month transactions', you must use the 'Total Expenses' and 'Total Income' from the context to form your answer.\n\n" +
                 "--- FINANCIAL CONTEXT START ---\n" +
                 contextText +
                 "--- FINANCIAL CONTEXT END ---\n\n" +
